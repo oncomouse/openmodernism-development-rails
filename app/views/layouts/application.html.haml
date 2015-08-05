@@ -1,0 +1,35 @@
+!!!
+%html
+	%head
+		%meta{:content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type"}/
+		%title AnthologyJammrRails
+		/ Load Fonts:
+		%link{:href => "//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css", :media => "all", :rel => "stylesheet"	}
+		= stylesheet_link_tag		'application', media: 'all', 'data-turbolinks-track' => true
+		- if Rails.env == "development"
+			:javascript
+				window.development = true
+		<!--[if lt IE 9]>
+		-if Rails.env == "development"
+			= javascript_include_tag "dest/respond.src.js"
+			= javascript_include_tag "css3-mediaqueries.js"
+			= javascript_include_tag "dist/html5shiv.js"
+		- else
+			= javascript_include_tag "polyfill"
+		<![endif]-->
+		= #javascript_include_tag "turbolinks"
+		= javascript_include_tag 'require'
+		= javascript_include_tag 'main'
+		-#requirejs_include_tag "application"
+		= csrf_meta_tags
+	%body
+		%header.container{ :role => 'banner'}
+			= render "partials/nav"
+		%article.container{ :role => 'main'}
+			= yield
+		%footer.container{ :role => 'complementary'}
+		#loading.text-center
+			%h1 Loading <br> Open Modernism
+			%h2 Please Wait a Moment
+			%p
+				%i.fa.fa-spin.fa-spinner

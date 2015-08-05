@@ -1,0 +1,92 @@
+<%
+
+	path_vendor_libraries = {
+		'backbone' => 'backbone',
+		'jquery'=> 'dist/jquery',
+		'jsyaml'=> 'dist/js-yaml',
+		'lodash'=> 'lodash',
+		'lorem'=> 'lorem',
+		'sprintf-vendor'=> 'src/sprintf',
+		'react'=> 'react-with-addons',
+		'postal'=> 'lib/postal',
+		'postal.diagnostics'=> 'lib/postal.diagnostics',
+		'postal.request-response'=> 'lib/postal.request-response',
+	}
+
+	path_alias_and_directories = {
+		'citeproc' => 'vendor/citeproc-amd',
+		'sprintf' => 'vendor/sprintf-amd/sprintf-shim',
+		'writedown' => 'vendor/writedown/writedown',
+		'bootstrap'=> 'assets/javascripts/bootstrap',
+		'jquery-ui'=> 'ui',
+		'has' => 'vendor/has/has'
+	}
+%>
+
+'use strict';
+
+var requirejs_configuration = {
+	'baseUrl': 'assets',
+
+	'paths': {
+		<%=
+		Dir.glob("app/assets/**/*.js").map do |file|
+			"'#{file.gsub("app/assets/javascripts/","").gsub(/\.js$/,"")}': '" + javascript_path(file.gsub("app/assets/javascripts/","")).gsub(/^\/assets\//,"").gsub(/\.js$/,"") + "'"
+		 end.join(",\n\t\t") %>,
+		<%= 
+		path_vendor_libraries.map do |k,v|
+			output = javascript_path v
+			"'#{k}': '#{output.gsub(/\.js$/,"")}'"
+		end.join(",\n\t\t") %>,
+		<%=
+		path_alias_and_directories.map do |k,v|
+			"'#{k}': '#{v}'"
+		end.join(",\n\t\t") %>
+	},
+	'shim': {
+		'lodash': {
+			'exports': '_'
+		},
+		'jquery-ui': {
+			'deps': ['jquery'],
+			'exports': '$'
+		},
+		'jst': {
+			'exports': 'JST'
+		},
+		'lorem': {
+			'exports': 'Lorem'
+		},
+		'sprintf': {
+			'exports': 'sprintf'
+		},
+
+		'bootstrap/affix':      { 'deps': ['jquery'], 'exports': '$.fn.affix' }, 
+		'bootstrap/alert':      { 'deps': ['jquery'], 'exports': '$.fn.alert' },
+		'bootstrap/button':     { 'deps': ['jquery'], 'exports': '$.fn.button' },
+		'bootstrap/carousel':   { 'deps': ['jquery'], 'exports': '$.fn.carousel' },
+		'bootstrap/collapse':   { 'deps': ['jquery'], 'exports': '$.fn.collapse' },
+		'bootstrap/dropdown':   { 'deps': ['jquery'], 'exports': '$.fn.dropdown' },
+		'bootstrap/modal':      { 'deps': ['jquery'], 'exports': '$.fn.modal' },
+		'bootstrap/popover':    { 'deps': ['jquery'], 'exports': '$.fn.popover' },
+		'bootstrap/scrollspy':  { 'deps': ['jquery'], 'exports': '$.fn.scrollspy' },
+		'bootstrap/tab':        { 'deps': ['jquery'], 'exports': '$.fn.tab'        },
+		'bootstrap/tooltip':    { 'deps': ['jquery'], 'exports': '$.fn.tooltip' },
+		'bootstrap/transition': { 'deps': ['jquery'], 'exports': '$.fn.transition' }
+	},
+	'map': {
+		'*': {
+			'underscore': 'lodash'
+		}
+	}
+};
+
+if (!String.prototype.includes) {
+  String.prototype.includes = function() {'use strict';
+    return String.prototype.indexOf.apply(this, arguments) !== -1;
+  };
+}
+
+requirejs.config(requirejs_configuration);
+
+require(['application'], function(App) { App.start(); });
