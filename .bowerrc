@@ -1,0 +1,6 @@
+{
+	"directory": "vendor/assets",
+	"scripts": {
+		"postinstall": "rm -rf vendor/assets/underscore"
+	}
+}
