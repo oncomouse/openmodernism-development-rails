@@ -37,9 +37,9 @@ define([
 			
 			return (<div className="sidebar-mountpoint" />);
 		},
-		render: function() {
+		render: function() { //{'sidebar col-md-' + this.props.cols}
 			return (
-				<aside className={'sidebar col-md-' + this.props.cols} data-affix={this.props.affix}>
+				<aside className='sidebar' data-affix={this.props.affix}>
 					<div className='sidebar-body'>
 						{this.renderSidebar()}
 					</div>

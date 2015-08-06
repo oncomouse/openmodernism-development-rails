@@ -40,7 +40,7 @@ ul#DocumentsView {
 }
 
 @mixin affix-sidebar($columns) {
-	//@include make-md-column($columns);
+	@include make-md-column($columns);
 	.container &.affix {
 		@media (min-width: $screen-md-min) {
 			width: $container-md * ($columns / $grid-columns);
@@ -60,12 +60,6 @@ ul#DocumentsView {
 			width: percentage($columns / $grid-columns);
 			margin-left: percentage(($grid-columns - $columns) / $grid-columns);
 		}
-	}
-}
-
-@for $i from 1 through $grid-columns {
-	.sidebar.col-md-#{$i} {
-		@include affix-sidebar($i);
 	}
 }
 
@@ -121,4 +115,9 @@ body.loaded {
 		@extend .control-label;
 		font-size: $font-size-small;
 	}
+}
+
+// Sidebar code:
+body.documents .sidebar, body.anthologies .sidebar {
+	@include affix-sidebar(5);
 }

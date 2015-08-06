@@ -45,6 +45,7 @@ define([
 				React.unmountComponentAtNode($('#app').get(0));
 				$('#app').html('').append('<h1 class="state-loading text-center">Loading</h1>');
 				
+				$('body').attr('class','loaded').addClass(data.route);
 				
 				/*
 				This is not a good solution:

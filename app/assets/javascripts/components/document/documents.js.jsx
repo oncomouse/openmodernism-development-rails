@@ -26,7 +26,7 @@ define([
 					<h1 className="col-xs-12">List of Available Documents <span className="subtitle"></span></h1>
 
 					<DocumentList collection={this.props.collection} />
-					<Sidebar cols={5} attach={true} route="documents" />
+					<Sidebar attach={true} route="documents" />
 				</div>
 			);
 		}
