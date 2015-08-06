@@ -92,12 +92,6 @@ var requirejs_configuration = {
 	}
 };
 
-if (!String.prototype.includes) {
-  String.prototype.includes = function() {'use strict';
-    return String.prototype.indexOf.apply(this, arguments) !== -1;
-  };
-}
-
 requirejs.config(requirejs_configuration);
 
 var manifest = window.development ? '' : 'json!/assets/manifest.json';
