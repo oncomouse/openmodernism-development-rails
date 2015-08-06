@@ -131,8 +131,21 @@ namespace :assets do
 
 	task :compile_react do
 		require 'babel/transpiler'
+		require 'json'
+		
+		build_manifest = JSON.parse(File.read("build-manifest.json")).map{|x| x+".js" }
+		asset_manifest = (!File.exists? "asset-manifest.json") ? {} : JSON.parse(File.read("asset-manifest.json"))
+		
+		react_to_compile = []
+		
+		build_manifest.each do |mod|
+			asset_manifest[mod].each do |requirement, hash|
+				react_to_compile.push(requirement) if requirement =~ /\.js.jsx$/
+			end
+		end
+		
 		puts "Running task assets:compile_react"
-		Dir.glob('app/assets/javascripts/**/*.js.jsx').each do |react_file|
+		react_to_compile.each do |react_file|
 			new_file = react_file.gsub('app/assets/javascripts/', 'assets-clean_copy/').gsub(/\.js\.jsx$/,".js")
 			puts new_file
 			if not File.exists? File.dirname(new_file)
