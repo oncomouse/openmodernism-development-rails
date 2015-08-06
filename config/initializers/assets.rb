@@ -19,8 +19,6 @@ if Rails.env == "development"
 		end
 		
 	end.flatten
-	# UGH
-	Rails.application.config.assets.precompile += %w( bootstrap/affix.js bootstrap/alert.js bootstrap/button.js bootstrap/carousel.js bootstrap/collapse.js bootstrap/dropdown.js bootstrap/modal.js bootstrap/popover.js bootstrap/scrollspy.js bootstrap/tab.js bootstrap/tooltip.js bootstrap/transition.js )
 else
 	Rails.application.config.assets.precompile += %w( polyfill.js )
 end
