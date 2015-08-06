@@ -17,7 +17,10 @@ if Rails.env == "development"
 		Dir.glob("#{path}/**/*.js.*").map do |file|
 			file.gsub(path+"/","").gsub(/\.js\..*$/,'.js')
 		end
+		
 	end.flatten
+	# UGH
+	Rails.application.config.assets.precompile += %w( bootstrap/affix.js bootstrap/alert.js bootstrap/button.js bootstrap/carousel.js bootstrap/collapse.js bootstrap/dropdown.js bootstrap/modal.js bootstrap/popover.js bootstrap/scrollspy.js bootstrap/tab.js bootstrap/tooltip.js bootstrap/transition.js )
 else
 	Rails.application.config.assets.precompile += %w( polyfill.js )
 end
