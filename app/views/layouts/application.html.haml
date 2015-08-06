@@ -17,10 +17,8 @@
 		- else
 			= javascript_include_tag "polyfill"
 		<![endif]-->
-		= #javascript_include_tag "turbolinks"
 		= javascript_include_tag 'require'
 		= javascript_include_tag 'main'
-		-#requirejs_include_tag "application"
 		= csrf_meta_tags
 	%body
 		%header.container{ :role => 'banner'}
