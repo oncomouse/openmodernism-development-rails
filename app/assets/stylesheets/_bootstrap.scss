@@ -2,6 +2,8 @@
 
 // Comment out @import statements to turn off components that aren't being used (which will shrink your project):
 
+@import "bootstrap-sprockets";
+
 // Core variables and mixins
 @import "variables";
 @import "bootstrap/mixins";
