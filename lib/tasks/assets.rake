@@ -115,18 +115,27 @@ namespace :assets do
 			
 			route_file.gsub!("app/assets/javascripts/","").gsub!(/\.js$/,"")
 			build_mod = false
-			
+						
 			if manifest.has_key? route_file+".js"
 				if Dir.glob("public/assets/#{route_file}*.js").length == 0
 					build_mod = true
 				else
-					manifest[route_file+".js"].each{ |file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true end }
+					manifest[route_file+".js"].each {|file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true; break end }
 				end
 			else
 				build_mod = true
 			end
 			
 			if build_mod
+				has_citeproc = false
+				if manifest.has_key? route_file+".js"
+					manifest[route_file+".js"].each do |file, hash|
+						if file =~ /citeproc/
+							has_citeproc = true
+							break
+						end
+					end
+				end
 				mod_def = {
 					'name' => route_file,
 					'exclude' => ['main']
@@ -139,6 +148,26 @@ namespace :assets do
 				end
 				config['modules'].push(mod_def)
 				
+				if has_citeproc
+					FileUtils.mkdir_p File.dirname("assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js")
+					FileUtils.touch "assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js"
+					mod_def = {
+						'name' => route_file + "_wo_citeproc",
+						'exclude' => [
+							'main'
+						],
+						'include' => [
+							route_file
+						]
+					}
+					
+					mod_def['exclude'] += Dir.glob("app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("app/assets/javascripts/","").sub(/\.js$/,"") }
+					if File.exists? "app/assets/javascripts/components/sidebar/#{route_file}.js.jsx" or File.exists? "app/assets/javascripts/components/sidebar/#{route_file}.js"
+						mod_def['include'].push("components/sidebar/#{route_file}")
+					end
+					config['modules'].push(mod_def)
+					built_modules.push(route_file + "_wo_citeproc")
+				end
 				built_modules.push(route_file)
 			end
 			
@@ -165,9 +194,14 @@ namespace :assets do
 		build_manifest = JSON.parse(File.read("tmp/build-manifest.json")).map{|x| x+".js" }
 		asset_manifest = (!File.exists? "asset-manifest.json") ? {} : JSON.parse(File.read("asset-manifest.json"))
 		
+		if build_manifest.length > 0 and not build_manifest.include? "main"
+			build_manifest.push("main.js")
+		end
+		
 		react_to_compile = []
 		
 		build_manifest.each do |mod|
+			next if not asset_manifest.has_key? mod
 			asset_manifest[mod].each do |requirement, hash|
 				react_to_compile.push(requirement) if requirement =~ /\.js.jsx$/
 			end
@@ -353,6 +387,7 @@ namespace :assets do
 	
 			mod.each{|f|
 				actual_f = asset_dirs.map{ |d| if File.exists?("#{d}/#{f}") then "#{d}/#{f}" elsif File.exists?("#{d}/#{f}.erb") then "#{d}/#{f}.erb" elsif File.exists?("#{d}/#{f}.jsx") then "#{d}/#{f}.jsx" else nil end}.delete_if{|x| x.nil?}.first
+				next if actual_f.nil? or not File.exists? actual_f
 				asset_manifest[file][actual_f] = Digest::MD5.hexdigest(File.read(actual_f))
 			}
 		}

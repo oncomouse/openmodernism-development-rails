@@ -65,6 +65,9 @@ define([
 				*/
 				
 				var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');
+				if(typeof window.manifest !== 'undefined' && _.has(window.manifest.assets,'routes/' + data.route+'_wo_citeproc.js') && require.defined('citeproc/citeproc') && !require.defined('routes/' + data.route)) {
+					route_file = window.manifest['assets']['routes/' + data.route+'_wo_citeproc.js'].replace(/\.js$/,'')
+				}
 				require([route_file], _.bind(function() {
 					require(['routes/'+data.route], _.bind(function(route) {
 						route(this.context, data.params);
