@@ -6,6 +6,43 @@ namespace :assets do
 
 	OUTPUT_DIR = "public"
 
+	module Rake
+
+		module TaskManager
+
+			def redefine_task(task_class, args, &block)
+				task_name, deps = resolve_args(args)
+				task_name = task_class.scope_name(@scope, task_name)
+				deps = [deps] unless deps.respond_to?(:to_ary)
+				deps = deps.collect {|d| d.to_s }
+				@tasks[task_name.to_s + ".old"] = @tasks[task_name.to_s]
+				task = @tasks[task_name.to_s] = task_class.new(task_name, self)
+				task.application = self
+				#task.add_comment(@last_comment)
+				#@last_comment = nil
+				task.enhance(deps, &block)
+				task
+			end
+		end
+
+		class Task
+			class << self
+				def redefine_task(args, &block)
+					Rake.application.redefine_task(self, args, &block)
+				end
+			end
+		end
+	end
+
+	def redefine_task(args, &block)
+		Rake::Task.redefine_task(args, &block)
+	end
+
+	
+	redefine_task([:precompile]) do
+		Rake::Task["assets:pack"].invoke
+	end
+	
 	task :pack => [
 		"assets:make_app_build_js",
 		"assets:clean_copy",
@@ -15,7 +52,7 @@ namespace :assets do
 		"assets:clean_output_dir",
 		"assets:fake_assets",
 		"assets:mark_for_deletion",
-		"assets:precompile",
+		"assets:precompile.old",
 		"assets:restore_assets",
 		"assets:delete_old_assets",
 		"assets:write_manifest"
