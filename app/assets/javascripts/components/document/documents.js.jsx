@@ -23,7 +23,7 @@ define([
 		render: function() {
 			return(
 				<div className="row">
-					<h1 className="col-xs-12">List of Available Documents <span className="subtitle"></span></h1>
+					<h1>List of Available Documents <span className="subtitle"></span></h1>
 
 					<DocumentList collection={this.props.collection} />
 					<Sidebar attach={true} route="documents" />
@@ -40,7 +40,7 @@ define([
 		},
 		render: function() {
 			return (
-				<ul id="DocumentsView" className="col-md-7">
+				<ul id="DocumentsView">
 					{this.createChildren()}
 				</ul>
 			)
