@@ -18,9 +18,9 @@
 
 /node_modules
 /vendor/assets
-/public/assets
+#/public/assets
 
-/Gemfile.lock
+#/Gemfile.lock
 
 # Ignore our internal RequireJS dependency tracker:
 /asset-manifest.json
