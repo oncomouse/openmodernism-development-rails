@@ -208,7 +208,7 @@ namespace :assets do
 		end
 		
 		puts "Running task assets:compile_react"
-		react_to_compile.each do |react_file|
+		react_to_compile.uniq.each do |react_file|
 			new_file = react_file.gsub('app/assets/javascripts/', 'assets-clean_copy/').gsub(/\.js\.jsx$/,".js")
 			puts new_file
 			if not File.exists? File.dirname(new_file)
