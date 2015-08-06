@@ -5,7 +5,7 @@ namespace :assets do
 
 	OUTPUT_DIR = "public"
 
-	task :pack => ["assets:make_app_build_js", "assets:clean_copy", "assets:run_r_js", "assets:generate_polyfill", "assets:uglify", "assets:clean_output_dir", "assets:fake_assets", "assets:precompile", "assets:restore_assets", "assets:write_manifest"]
+	task :pack => ["assets:make_app_build_js", "assets:clean_copy", "assets:run_r_js", "assets:generate_polyfill", "assets:uglify", "assets:clean_output_dir", "assets:fake_assets", "assets:precompile", "assets:restore_assets", "assets:write_manifest"] 
 	
 	# Run r.js on the clean copy of our assets directory:
 	task :run_r_js do
@@ -62,7 +62,7 @@ namespace :assets do
 			if Dir.glob("public/assets/main*.js").length == 0
 				build_mod = true
 			else
-				manifest["main.js"].each{ |file, hash| if Digest::MD5.hexdigest(File.read(file)) != hash then build_mod = true end }
+				manifest["main.js"].each{ |file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true end }
 			end
 		else
 			build_mod = true
@@ -71,7 +71,11 @@ namespace :assets do
 		if build_mod
 			config['modules'].push(
 				{
-					'name' => 'main'
+					'name' => 'main',
+					'include' => [
+						'text',
+						'json'
+					]
 				}
 			)
 			built_modules.push("main")
@@ -86,7 +90,7 @@ namespace :assets do
 				if Dir.glob("public/assets/#{route_file}*.js").length == 0
 					build_mod = true
 				else
-					manifest[route_file+".js"].each{ |file, hash| if Digest::MD5.hexdigest(File.read(file)) != hash then build_mod = true end }
+					manifest[route_file+".js"].each{ |file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true end }
 				end
 			else
 				build_mod = true
@@ -153,7 +157,7 @@ namespace :assets do
 		files.each do |file|
 			next if not File.exists? file
 			puts "Uglifying #{file}"
-			compressed_source = Uglifier.compile(File.read(file))
+			compressed_source = Uglifier.new(output: { comments: :copyright }).compile(File.read(file))
 			File.open(file, 'w') do |f_pointer|
 				f_pointer.write(compressed_source)#.gsub(/\/\*.*?\*\//m,""))
 			end
@@ -241,7 +245,10 @@ namespace :assets do
 			
 			if not File.exists? "#{asset_dir_in_question}/#{asset}"
 				FileUtils.mkdir_p(File.dirname("#{asset_dir_in_question}/#{asset}"))
-				FileUtils.cp(Dir.glob("public/assets/#{asset.sub(/\.(js|css)$/,"")}*.#{asset_extension_in_question}").first, "#{asset_dir_in_question}/#{asset}")
+				content = File.read(Dir.glob("public/assets/#{asset.sub(/\.(js|css)$/,"")}*.#{asset_extension_in_question}").first).sub(/\*\/\n+/,"*/\n")
+				File.open("#{asset_dir_in_question}/#{asset}", "w") do |fp|
+					fp.write content
+				end
 			end
 		end
 		
@@ -263,7 +270,7 @@ namespace :assets do
 			mtime = File.mtime(file).to_s
 			size = File.size(file)
 			file.gsub!("public/assets/","")
-			basename = file[0..file.rindex("-")] + file[file.rindex(".")..-1]
+			basename = file[0..file.rindex("-")-1] + file[file.rindex(".")..-1]
 			manifest[:files][file] = {
 				:logical_path => basename,
 				:digest => file.match(/-([a-f0-9]+)\.[a-z0-9]+$/)[1],
@@ -278,11 +285,11 @@ namespace :assets do
 		
 		build_manifest = JSON.parse(File.read("build-manifest.json"))
 		
-		if(build_manifest.include? "main")
-			File.open(Dir.glob("public/assets/main*.js").first, "a") do |fp|
-				fp.write "#{Uglifier.compile("window.manifest = " + JSON.pretty_generate(manifest))};"
-			end
-		end
+#		if(build_manifest.include? "main")
+#			File.open(Dir.glob("public/assets/main*.js").first, "a") do |fp|
+#				fp.write "#{Uglifier.compile("window.manifest = " + JSON.pretty_generate(manifest))};"
+#			end
+#		end
 		
 		require 'json'
 		require 'digest/md5'
@@ -293,6 +300,10 @@ namespace :assets do
 		build = File.read(Dir.glob("public/assets/build*.txt").first).sub(/^\n/,"").split(/\n\n/).map{ |mod| (target, requirements) = mod.split("\n----------------\n"); tmp_manifest[target] = requirements.split("\n")}
 
 		asset_manifest = (!File.exists? "asset-manifest.json") ? {} : JSON.parse(File.read("asset-manifest.json"))
+
+		asset_manifest.each do |m,v|
+			asset_manifest[m].delete_if{ |file,v| (not File.exists? file) }
+		end
 
 		tmp_manifest.each { |file, mod| 
 			asset_manifest[file] = {} if not asset_manifest.has_key? file
