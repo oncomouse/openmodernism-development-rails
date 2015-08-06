@@ -357,7 +357,7 @@ namespace :assets do
 			}
 		}
 		
-		File.open("asset-manifest.json", "w") { |fp| fp.write(JSON.generate(asset_manifest)) }
+		File.open("asset-manifest.json", "w") { |fp| fp.write(JSON.pretty_generate(asset_manifest)) }
 		File.delete(Dir.glob("public/assets/build*.txt").first)
 		File.delete("tmp/build-manifest.json")
 	end
