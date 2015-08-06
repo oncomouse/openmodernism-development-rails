@@ -22,6 +22,7 @@ namespace :assets do
 	] 
 	
 	task :distribute => ["assets:pack"] do
+		require 'uglifier'
 		puts "Running task assets:distribute"
 		
 		puts "\nPacking scripts into #{Dir.pwd}/dist"
@@ -30,11 +31,25 @@ namespace :assets do
 		
 		FileUtils.mkdir_p "dist/javascripts/"
 		
+		shim_manifest = {"assets"=>{}}
 		files = Dir.glob("public/assets/main-*.js") + Dir.glob("public/assets/require-*.js") + Dir.glob("public/assets/routes/**/*.js")
 		files.each do |file|
-			out_file = "dist/javascripts/#{manifest["files"][file.sub("public/assets/", "")]["logical_path"]}".sub(/\.js$/,".min.js")
+			out_file = "dist/javascripts/#{manifest["files"][file.sub("public/assets/", "")]["logical_path"]}".sub(/\.js$/,".js")
 			FileUtils.mkdir_p File.dirname(out_file)
 			FileUtils.cp file, out_file
+			
+			shim_manifest["assets"][out_file.sub("dist/javascripts/","")] = out_file.sub("dist/javascripts/","")
+		end
+		
+		
+		correct_main = File.read("dist/javascripts/main.js").sub(/var requirejs_configuration\=.*define\(\"main\"\,function\(\)\{\}\),/,"")
+		#.sub.sub('var manifest=window.development?"":"json!/assets/manifest.json";require(["app",manifest],function(e,t){window.manifest=window.development?void 0:t', 'require(["app"],function(e){window.manifest=' + JSON.generate(shim_manifest))
+		#.sub('var manifest=window.development?"":"json!/assets/manifest.json";',"").sub('window.manifest=window.development?void 0:t,',"").sub('require(["app",manifest],function(e,t){','require(["app"],function(e){')
+		File.open("dist/javascripts/app.js","w") do |fp|
+			fp.write(correct_main)
+		end
+		File.open("dist/javascripts/main.js","w") do |fp|
+			fp.write(Erubis::Eruby.new(File.read('app/assets/javascripts/main.js.erb')).result(binding()).sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.generate(shim_manifest)}; app.start();})")))
 		end
 	end
 	
@@ -346,7 +361,6 @@ namespace :assets do
 		end
 	end
 	task :write_manifest do
-		require 'uglifier'
 		require 'digest/md5'
 		
 		manifest = {:files => {}, :assets => {}}
