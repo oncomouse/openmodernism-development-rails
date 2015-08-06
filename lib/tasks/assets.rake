@@ -41,10 +41,8 @@ namespace :assets do
 			shim_manifest["assets"][out_file.sub("dist/javascripts/","")] = out_file.sub("dist/javascripts/","")
 		end
 		
-		
+		# Rewrite main.js as app.js and build a user editable main.js (so users can configure RequireJS to meet their needs).
 		correct_main = File.read("dist/javascripts/main.js").sub(/var requirejs_configuration\=.*define\(\"main\"\,function\(\)\{\}\),/,"")
-		#.sub.sub('var manifest=window.development?"":"json!/assets/manifest.json";require(["app",manifest],function(e,t){window.manifest=window.development?void 0:t', 'require(["app"],function(e){window.manifest=' + JSON.generate(shim_manifest))
-		#.sub('var manifest=window.development?"":"json!/assets/manifest.json";',"").sub('window.manifest=window.development?void 0:t,',"").sub('require(["app",manifest],function(e,t){','require(["app"],function(e){')
 		File.open("dist/javascripts/app.js","w") do |fp|
 			fp.write(correct_main)
 		end
