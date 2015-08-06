@@ -11,7 +11,17 @@
 		'react'=> 'react-with-addons',
 		'postal'=> 'lib/postal',
 		'postal.diagnostics'=> 'lib/postal.diagnostics',
-		'postal.request-response'=> 'lib/postal.request-response'
+		'postal.request-response'=> 'lib/postal.request-response',
+		'text' => 'lib/text',
+		#'async' => 'src/async',
+		#'font' => 'src/font',
+		#'goog' => 'src/goog',
+		#'image' => 'src/image',
+		'json' => 'src/json',
+		#'noext' => 'src/noext',
+		#'mdown' => 'src/mdown',
+		#'propertyParser ' => 'src/propertyParser',
+		#'markdownConverter ' => 'lib/Markdown.Converter'
 	}
 
 	path_alias_and_directories = {
@@ -90,4 +100,9 @@ if (!String.prototype.includes) {
 
 requirejs.config(requirejs_configuration);
 
-require(['app'], function(App) { App.start(); });
+var manifest = window.development ? '' : 'json!/assets/manifest.json';
+
+require(['app', manifest], function(App, manifest) { 
+	window.manifest = window.development ? undefined : manifest;
+	App.start(); 
+});
