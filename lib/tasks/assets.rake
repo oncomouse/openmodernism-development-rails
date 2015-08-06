@@ -218,7 +218,6 @@ namespace :assets do
 				fp.write Babel::Transpiler.transform(File.read(react_file))['code'].gsub(/\\n/,"\n").gsub(/\\t/,"\t")
 			end
 		end
-		#system("node node node_modules/babel/bin/babel.js assets/react/components/ --out-dir assets-clean_copy/javascripts/components/")
 	end
 
 	task :uglify do
@@ -228,7 +227,6 @@ namespace :assets do
 		
 		files = ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
 		files += JSON.parse(File.read("tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
-		#files = Dir.glob("#{OUTPUT_DIR}/assets/javascripts/routes/**/*.js") + ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/main.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
 		files.each do |file|
 			next if not File.exists? file
 			puts "Uglifying #{file}"
