@@ -20,6 +20,10 @@
 /vendor/assets
 /public/assets
 
-Gemfile.lock
+/Gemfile.lock
 
-asset-manifest.json
+# Ignore our internal RequireJS dependency tracker:
+/asset-manifest.json
+
+# Ignore distributable version of the script:
+/dist

@@ -2,10 +2,41 @@ namespace :assets do
 
 	require 'fileutils'
 	require 'erubis'
+	require 'json'
 
 	OUTPUT_DIR = "public"
 
-	task :pack => ["assets:make_app_build_js", "assets:clean_copy", "assets:run_r_js", "assets:generate_polyfill", "assets:uglify", "assets:clean_output_dir", "assets:fake_assets", "assets:precompile", "assets:restore_assets", "assets:write_manifest"] 
+	task :pack => [
+		"assets:make_app_build_js",
+		"assets:clean_copy",
+		"assets:run_r_js",
+		"assets:generate_polyfill",
+		"assets:uglify",
+		"assets:clean_output_dir",
+		"assets:fake_assets",
+		"assets:mark_for_deletion",
+		"assets:precompile",
+		"assets:restore_assets",
+		"assets:delete_old_assets",
+		"assets:write_manifest"
+	] 
+	
+	task :distribute => ["assets:pack"] do
+		puts "Running task assets:distribute"
+		
+		puts "\nPacking scripts into #{Dir.pwd}/dist"
+		
+		manifest = JSON.parse(File.read('public/assets/manifest.json'))
+		
+		FileUtils.mkdir_p "dist/javascripts/"
+		
+		files = Dir.glob("public/assets/main-*.js") + Dir.glob("public/assets/require-*.js") + Dir.glob("public/assets/routes/**/*.js")
+		files.each do |file|
+			out_file = "dist/javascripts/#{manifest["files"][file.sub("public/assets/", "")]["logical_path"]}".sub(/\.js$/,".min.js")
+			FileUtils.mkdir_p File.dirname(out_file)
+			FileUtils.cp file, out_file
+		end
+	end
 	
 	# Run r.js on the clean copy of our assets directory:
 	task :run_r_js do
@@ -22,7 +53,7 @@ namespace :assets do
 	task :clean_output_dir do
 		puts "Running assets:clean_output_dir"
 		files = ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
-		files += JSON.parse(File.read("build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
+		files += JSON.parse(File.read("tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
 		(Dir.glob("#{OUTPUT_DIR}/assets/javascripts/**/*.js")).each do |file|
 			next if files.include? file
 			File.delete(file)
@@ -47,7 +78,6 @@ namespace :assets do
 	end
 	
 	task :make_app_build_js do
-		require 'json'
 		require 'digest/md5'
 		config = JSON.parse(Erubis::Eruby.new(File.read('app/assets/javascripts/main.js.erb')).result(binding()).gsub(/(\t|\n)/,'').split('var requirejs_configuration = ')[1].split(';')[0].gsub("'",'"'))
 		
@@ -114,8 +144,8 @@ namespace :assets do
 			
 		end
 		
-		File.open("build-manifest.json", "w") do |fp|
-			fp.write(JSON.pretty_generate(built_modules))
+		File.open("tmp/build-manifest.json", "w") do |fp|
+			fp.write(JSON.generate(built_modules))
 		end
 		
 		config['appDir'] = './assets-clean_copy'
@@ -125,15 +155,14 @@ namespace :assets do
 		config['optimize'] = 'none'
 		
 		File.open('app.build.js', 'w') do |json_fp|
-			json_fp.write(JSON.pretty_generate(config))
+			json_fp.write(JSON.generate(config))
 		end
 	end
 
 	task :compile_react do
 		require 'babel/transpiler'
-		require 'json'
 		
-		build_manifest = JSON.parse(File.read("build-manifest.json")).map{|x| x+".js" }
+		build_manifest = JSON.parse(File.read("tmp/build-manifest.json")).map{|x| x+".js" }
 		asset_manifest = (!File.exists? "asset-manifest.json") ? {} : JSON.parse(File.read("asset-manifest.json"))
 		
 		react_to_compile = []
@@ -160,12 +189,11 @@ namespace :assets do
 
 	task :uglify do
 		require 'uglifier'
-		require 'json'
 	
 		puts "Running task assets:uglify"
 		
 		files = ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
-		files += JSON.parse(File.read("build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
+		files += JSON.parse(File.read("tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
 		#files = Dir.glob("#{OUTPUT_DIR}/assets/javascripts/routes/**/*.js") + ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/main.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
 		files.each do |file|
 			next if not File.exists? file
@@ -196,7 +224,6 @@ namespace :assets do
 
 	# Create a copy of the assets directory that only uses the vendor packages we are actually deploying and the JS files we need:
 	task :clean_copy do
-		require 'json'
 	
 		puts "Running task assets:clean_copy"
 	
@@ -234,9 +261,7 @@ namespace :assets do
 			fp.write Erubis::Eruby.new(File.read('app/assets/javascripts/main.js.erb')).result(binding())
 		end
 	end
-
 	task :fake_assets do
-		require 'json'
 		FileUtils.mv("app/assets/javascripts", "app/javascripts.assets.proper")
 		FileUtils.mv("vendor/assets", "vendor/assets.proper")
 		FileUtils.mkdir("app/assets/javascripts")
@@ -266,13 +291,29 @@ namespace :assets do
 		end
 		
 	end
+	task :mark_for_deletion do
+		build_manifest = JSON.parse(File.read("tmp/build-manifest.json"))
+		files_to_delete = []
+		build_manifest.each do |mod|
+			files_to_delete += Dir.glob("public/assets/#{mod}-*.js")
+		end
+		File.open("tmp/delete-manifest.json","w") do |fp|
+			fp.write JSON.generate(files_to_delete)
+		end
+	end
 	task :restore_assets do
 		FileUtils.rm_r("app/assets/javascripts")
 		FileUtils.mv("app/javascripts.assets.proper", "app/assets/javascripts")
 		FileUtils.mv("vendor/assets.proper", "vendor/assets")
 	end
+	task :delete_old_assets do
+		files_to_delete = JSON.parse(File.read("tmp/delete-manifest.json"))
+		File.delete("tmp/delete-manifest.json")
+		files_to_delete.each do |file|
+			File.delete(file)
+		end
+	end
 	task :write_manifest do
-		require 'json'
 		require 'uglifier'
 		require 'digest/md5'
 		
@@ -293,19 +334,8 @@ namespace :assets do
 			manifest[:assets][basename] = file
 		end
 		File.open("public/assets/manifest.json", "w") do |fp|
-			fp.write JSON.pretty_generate(manifest)
+			fp.write JSON.generate(manifest)
 		end
-		
-		build_manifest = JSON.parse(File.read("build-manifest.json"))
-		
-#		if(build_manifest.include? "main")
-#			File.open(Dir.glob("public/assets/main*.js").first, "a") do |fp|
-#				fp.write "#{Uglifier.compile("window.manifest = " + JSON.pretty_generate(manifest))};"
-#			end
-#		end
-		
-		require 'json'
-		require 'digest/md5'
 
 		asset_dirs = Dir.glob("vendor/assets/*") + ["app/assets/javascripts"]
 
@@ -327,8 +357,8 @@ namespace :assets do
 			}
 		}
 		
-		File.open("asset-manifest.json", "w") { |fp| fp.write(JSON.pretty_generate(asset_manifest)) }
+		File.open("asset-manifest.json", "w") { |fp| fp.write(JSON.generate(asset_manifest)) }
 		File.delete(Dir.glob("public/assets/build*.txt").first)
-		File.delete("build-manifest.json")
+		File.delete("tmp/build-manifest.json")
 	end
 end
