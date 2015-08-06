@@ -33,7 +33,6 @@
     "react": "~0.13.3",
     "postal": "~1.0.6",
     "postal.request-response": "~0.3.1",
-    "labjs": "~2.0.3",
     "requirejs-plugins": "~1.0.3"
   },
   "resolutions": {
