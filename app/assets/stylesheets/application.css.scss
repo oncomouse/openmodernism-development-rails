@@ -117,7 +117,16 @@ body.loaded {
 	}
 }
 
-// Sidebar code:
+// Document element sizes:
+#DocumentsView, #AnthologiesView {
+	@include make-md-column(7);
+}
+
+// Sidebar sizes:
 body.documents .sidebar, body.anthologies .sidebar {
 	@include affix-sidebar(5);
+}
+
+.row {
+	@include make-row;
 }
