@@ -1,11 +1,20 @@
 class AnthologiesController < ApplicationController
 	def index
-		render json: Anthology.preload(:documents).to_json(:include => [:documents])
+		if params[:no_preload]
+			models = Anthology.all
+		else
+			models = Anthology.preload(:documents).to_json(:include => [:documents])
+		end
+		render json: models
 	end
 	
 	def view
 		begin
-			model = Anthology.preload(:documents).find(params['id'])
+			if params[:no_preload]
+				model = Anthology.find(params['id'])
+			else
+				model = Anthology.preload(:documents).find(params['id'])
+			end
 		rescue
 			model = nil
 		end
