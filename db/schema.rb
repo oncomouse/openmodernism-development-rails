@@ -11,12 +11,25 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150726152705) do
+ActiveRecord::Schema.define(version: 20150807152353) do
+
+  create_table "authors", force: :cascade do |t|
+    t.string "given"
+    t.string "given_use"
+    t.string "family"
+    t.date   "birth"
+    t.date   "death"
+  end
 
   create_table "documents", force: :cascade do |t|
     t.text     "metadata",   null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "documents_authors", force: :cascade do |t|
+    t.integer "document_id"
+    t.integer "author_id"
   end
 
 end
