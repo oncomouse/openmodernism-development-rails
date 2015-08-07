@@ -250,9 +250,13 @@ namespace :assets do
 		react_to_compile = []
 		
 		build_manifest.each do |mod|
-			next if not asset_manifest.has_key? mod
-			asset_manifest[mod].each do |requirement, hash|
-				react_to_compile.push(requirement) if requirement =~ /\.js.jsx$/
+			if not asset_manifest.has_key? mod
+				react_to_compile = Dir.glob("#{Rails.root}/app/assets/javascripts/**/*.jsx")
+				break
+			else
+				asset_manifest[mod].each do |requirement, hash|
+					react_to_compile.push(requirement) if requirement =~ /\.js.jsx$/
+				end
 			end
 		end
 		
