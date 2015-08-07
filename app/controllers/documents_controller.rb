@@ -4,6 +4,11 @@ class DocumentsController < ApplicationController
 	end
 	
 	def view
-		render json: Document.preload(:authors, :citations, :document_files).find(params['id']).to_json(:include => [:authors, :citations, :document_files])
+		begin
+			model = Document.preload(:authors, :citations, :document_files).find(params['id'])
+		rescue
+			model = nil
+		end
+		render json: model.nil? ? "{}" : model.to_json(:include => [:authors, :citations, :document_files])
 	end
 end

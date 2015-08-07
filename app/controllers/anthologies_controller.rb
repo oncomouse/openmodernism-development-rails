@@ -4,6 +4,11 @@ class AnthologiesController < ApplicationController
 	end
 	
 	def view
-		render json: Anthology.preload(:documents).find(params['id']).to_json(:include => [:documents])
+		begin
+			model = Anthology.preload(:documents).find(params['id'])
+		rescue
+			model = nil
+		end
+		render json: model.nil? ? "{}" : model.to_json(:include => [:documents])
 	end
 end
