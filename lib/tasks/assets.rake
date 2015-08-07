@@ -420,7 +420,9 @@ namespace :assets do
 		asset_dirs = Dir.glob("vendor/assets/*") + ["#{Rails.root}/app/assets/javascripts"]
 
 		tmp_manifest = {}
-		build = File.read(Dir.glob("#{Rails.root}/public/assets/build*.txt").first).sub(/^\n/,"").split(/\n\n/).map{ |mod| (target, requirements) = mod.split("\n----------------\n"); tmp_manifest[target] = requirements.split("\n")}
+		if Dir.glob("#{Rails.root}/public/assets/build*.txt").length > 0
+			build = File.read(Dir.glob("#{Rails.root}/public/assets/build*.txt").first).sub(/^\n/,"").split(/\n\n/).map{ |mod| (target, requirements) = mod.split("\n----------------\n"); tmp_manifest[target] = requirements.split("\n")}
+		end
 
 		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
 
