@@ -11,7 +11,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150807154122) do
+ActiveRecord::Schema.define(version: 20150807163408) do
+
+  create_table "anthologies", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string   "title"
+    t.text     "toc"
+  end
 
   create_table "authors", force: :cascade do |t|
     t.string "given"
