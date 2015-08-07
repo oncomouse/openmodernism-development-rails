@@ -24,6 +24,10 @@
 		%header.container{ :role => 'banner'}
 			= render "partials/nav"
 		%article.container{ :role => 'main'}
+			- if notice
+				%p.alert.alert-success=notice
+			- if alert
+				%p.alert.alert-danger=alert
 			= yield
 		%footer.container{ :role => 'complementary'}
 		#loading.text-center

@@ -76,4 +76,5 @@ Rails.application.configure do
 
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
+  config.action_mailer.default_url_options = { host: 'salty-atoll-6298.herokuapp.com', port: 5000 }
 end
