@@ -399,24 +399,24 @@ namespace :assets do
 	task :write_manifest do
 		require 'digest/md5'
 		
-		manifest = {:files => {}, :assets => {}}
-
-		Dir.glob("#{Rails.root}/public/assets/**/*.*").each do |file|
-			next if file =~ /manifest.json$/
-			mtime = File.mtime(file).to_s
-			size = File.size(file)
-			file.gsub!("#{Rails.root}/public/assets/","")
-			basename = file[0..file.rindex("-")-1] + file[file.rindex(".")..-1]
-			manifest[:files][file] = {
-				:logical_path => basename,
-				:digest => file.match(/-([a-f0-9]+)\.[a-z0-9]+$/)[1],
-				:mtime => mtime,
-				:size => size
-			}
-			manifest[:assets][basename] = file
-		end
+#		manifest = {:files => {}, :assets => {}}
+#
+#		Dir.glob("#{Rails.root}/public/assets/**/*.*").each do |file|
+#			next if file =~ /manifest.json$/
+#			mtime = File.mtime(file).to_s
+#			size = File.size(file)
+#			file.gsub!("#{Rails.root}/public/assets/","")
+#			basename = file[0..file.rindex("-")-1] + file[file.rindex(".")..-1]
+#			manifest[:files][file] = {
+#				:logical_path => basename,
+#				:digest => file.match(/-([a-f0-9]+)\.[a-z0-9]+$/)[1],
+#				:mtime => mtime,
+#				:size => size
+#			}
+#			manifest[:assets][basename] = file
+#		end
 		File.open("#{Rails.root}/public/assets/manifest.json", "w") do |fp|
-			fp.write JSON.generate(manifest)
+			fp.write File.read(Dir.glob("#{Rails.root}/public/assets/.sprocket*.json").first)
 		end
 
 		asset_dirs = Dir.glob("vendor/assets/*") + ["#{Rails.root}/app/assets/javascripts"]
