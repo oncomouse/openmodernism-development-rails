@@ -441,7 +441,7 @@ namespace :assets do
 		}
 		
 		File.open("#{Rails.root}/asset-manifest.json", "w") { |fp| fp.write(JSON.pretty_generate(asset_manifest)) }
-		File.delete(Dir.glob("#{Rails.root}/public/assets/build*.txt").first)
+		File.delete(Dir.glob("#{Rails.root}/public/assets/build*.txt").first) if Dir.glob("#{Rails.root}/public/assets/build*.txt").length > 0
 		File.delete("#{Rails.root}/tmp/build-manifest.json")
 	end
 end
