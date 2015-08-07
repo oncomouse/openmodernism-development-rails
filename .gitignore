@@ -23,7 +23,7 @@
 #/Gemfile.lock
 
 # Ignore our internal RequireJS dependency tracker:
-/asset-manifest.json
+#/asset-manifest.json
 
 # Ignore distributable version of the script:
 /dist
