@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150807152353) do
+ActiveRecord::Schema.define(version: 20150807152947) do
 
   create_table "authors", force: :cascade do |t|
     t.string "given"
@@ -20,6 +20,22 @@ ActiveRecord::Schema.define(version: 20150807152353) do
     t.date   "birth"
     t.date   "death"
   end
+
+  create_table "citations", force: :cascade do |t|
+    t.datetime "created_at",      null: false
+    t.datetime "updated_at",      null: false
+    t.string   "container_title"
+    t.date     "date"
+    t.string   "volume"
+    t.string   "issue"
+    t.string   "publisher"
+    t.string   "publisher_place"
+    t.string   "page"
+    t.integer  "documents_id"
+    t.integer  "document_id"
+  end
+
+  add_index "citations", ["document_id"], name: "index_citations_on_document_id"
 
   create_table "documents", force: :cascade do |t|
     t.text     "metadata",   null: false
