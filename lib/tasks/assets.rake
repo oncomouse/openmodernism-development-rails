@@ -220,7 +220,8 @@ namespace :assets do
 			end
 			
 		end
-		
+
+		FileUtils.mkdir_p("#{Rails.root}/tmp/")
 		File.open("#{Rails.root}/tmp/build-manifest.json", "w") do |fp|
 			fp.write(JSON.generate(built_modules))
 		end
