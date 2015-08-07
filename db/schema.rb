@@ -11,13 +11,13 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150807164356) do
+ActiveRecord::Schema.define(version: 20150807181113) do
 
   create_table "anthologies", force: :cascade do |t|
-    t.datetime "created_at", null: false
-    t.datetime "updated_at", null: false
+    t.datetime "created_at",                null: false
+    t.datetime "updated_at",                null: false
     t.string   "title"
-    t.text     "toc"
+    t.text     "toc",        default: "[]"
   end
 
   create_table "anthologies_documents", force: :cascade do |t|
