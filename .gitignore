@@ -27,3 +27,5 @@
 
 # Ignore distributable version of the script:
 /dist
+
+/test
