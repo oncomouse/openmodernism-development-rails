@@ -11,28 +11,12 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150807143756) do
-
-  create_table "authors", force: :cascade do |t|
-    t.string "given"
-    t.string "given_use"
-    t.string "family"
-    t.date   "birth"
-    t.date   "death"
-  end
+ActiveRecord::Schema.define(version: 20150726152705) do
 
   create_table "documents", force: :cascade do |t|
     t.text     "metadata",   null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
   end
-
-  create_table "documents_authors", force: :cascade do |t|
-    t.integer "documents_id"
-    t.integer "authors_id"
-  end
-
-  add_index "documents_authors", ["authors_id"], name: "index_documents_authors_on_authors_id"
-  add_index "documents_authors", ["documents_id"], name: "index_documents_authors_on_documents_id"
 
 end
