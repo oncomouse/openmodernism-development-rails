@@ -91,7 +91,7 @@ namespace :assets do
 		puts "Running task assets:run_r_js"
 		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/assets-clean_copy/main.js")
 		if Dir.glob("#{Rails.root}/public/assets/require*.js").length == 0
-			FileUtils.cp("#{Rails.root}/vendor/assets/requirejs/require.js", "#{Rails.root}/app/assets/javascripts/")
+			FileUtils.cp("#{Rails.root}/vendor/assets/requirejs/require.js", "#{Rails.root}/public/assets/javascripts/")
 		end
 		
 		FileUtils.rm_r "#{Rails.root}/assets-clean_copy"
