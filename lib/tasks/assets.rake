@@ -46,7 +46,7 @@ namespace :assets do
 		"assets:clean_copy",
 		"assets:run_r_js",
 		"assets:generate_polyfill",
-		"assets:uglify",
+		#"assets:uglify",
 		"assets:clean_output_dir",
 		"assets:fake_assets",
 		"assets:mark_for_deletion",
@@ -255,15 +255,13 @@ namespace :assets do
 				break
 			else
 				asset_manifest[mod].each do |requirement, hash|
-					react_to_compile.push(requirement) if requirement =~ /\.js.jsx$/
+					react_to_compile.push("#{Rails.root}/#{requirement}") if requirement =~ /\.js.jsx$/
 				end
 			end
 		end
-		
 		puts "Running task assets:compile_react"
 		react_to_compile.uniq.each do |react_file|
 			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
-			puts new_file
 			if not File.exists? File.dirname(new_file)
 				FileUtils.mkdir_p "#{File.dirname(new_file)}"
 			end
@@ -431,7 +429,7 @@ namespace :assets do
 		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
 
 		asset_manifest.each do |m,v|
-			asset_manifest[m].delete_if{ |file,v| (not File.exists? file) }
+			asset_manifest[m].delete_if{ |file,v| (not File.exists? "#{Rails.root}/#{file}") }
 		end
 
 		tmp_manifest.each { |file, mod| 
@@ -440,7 +438,8 @@ namespace :assets do
 			mod.each{|f|
 				actual_f = asset_dirs.map{ |d| if File.exists?("#{d}/#{f}") then "#{d}/#{f}" elsif File.exists?("#{d}/#{f}.erb") then "#{d}/#{f}.erb" elsif File.exists?("#{d}/#{f}.jsx") then "#{d}/#{f}.jsx" else nil end}.delete_if{|x| x.nil?}.first
 				next if actual_f.nil? or not File.exists? actual_f
-				asset_manifest[file][actual_f] = Digest::MD5.hexdigest(File.read(actual_f))
+				actual_f.sub!(Rails.root.to_s,"")
+				asset_manifest[file][actual_f] = Digest::MD5.hexdigest(File.read("#{Rails.root}/#{actual_f}"))
 			}
 		}
 		
