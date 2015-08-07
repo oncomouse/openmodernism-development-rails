@@ -11,7 +11,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150807152947) do
+ActiveRecord::Schema.define(version: 20150807154122) do
 
   create_table "authors", force: :cascade do |t|
     t.string "given"
@@ -36,6 +36,19 @@ ActiveRecord::Schema.define(version: 20150807152947) do
   end
 
   add_index "citations", ["document_id"], name: "index_citations_on_document_id"
+
+  create_table "document_files", force: :cascade do |t|
+    t.datetime "created_at",                 null: false
+    t.datetime "updated_at",                 null: false
+    t.text     "contents"
+    t.string   "file_path"
+    t.boolean  "ocr"
+    t.boolean  "source_scan"
+    t.string   "type",        default: "md"
+    t.integer  "document_id"
+  end
+
+  add_index "document_files", ["document_id"], name: "index_document_files_on_document_id"
 
   create_table "documents", force: :cascade do |t|
     t.text     "metadata",   null: false
