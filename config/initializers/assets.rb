@@ -49,6 +49,12 @@ Rails.application.configure do
 		
 		end.flatten
 	else
-		config.assets.precompile += %w( polyfill.js )
+		
+		config.assets.precompile += %w( polyfill.js main.js app.js require.js )
+		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
+			puts file
+			file.gsub("#{Rails.root}/app/assets/javascripts/","")
+		end
+		puts config.assets.precompile
 	end
 end
