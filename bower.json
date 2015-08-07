@@ -22,23 +22,23 @@
       "css3-mediaqueries-js": "~1.0.0",
       "html5shiv": "~3.7.2",
       "r.js": "~2.1.18",
-      "requirejs": "~2.1.18"
+      "requirejs": "~2.1.18",
+      "backbone.localstorage": "~1.1.16",
+      "bootstrap-sass-official": "~3.3.5",
+      "jquery-ui": "~1.11.4",
+      "js-yaml": "~3.3.1",
+      "lodash": ">=3.9.3",
+      "sprintf": "~1.0.2",
+      "postal.diagnostics": "~0.7.4",
+      "react": "~0.13.3",
+      "postal": "~1.0.6",
+      "postal.request-response": "~0.3.1",
+      "requirejs-plugins": "~1.0.3",
+      "loremjs": "*",
+      "backbone": "~1.2.1",
+      "jquery": "~2.1.4"
   },
   "devDependencies": {
-    "backbone.localstorage": "~1.1.16",
-    "bootstrap-sass-official": "~3.3.5",
-    "jquery-ui": "~1.11.4",
-    "js-yaml": "~3.3.1",
-    "lodash": ">=3.9.3",
-    "sprintf": "~1.0.2",
-    "postal.diagnostics": "~0.7.4",
-    "react": "~0.13.3",
-    "postal": "~1.0.6",
-    "postal.request-response": "~0.3.1",
-    "requirejs-plugins": "~1.0.3",
-    "loremjs": "*",
-    "backbone": "~1.2.1",
-    "jquery": "~2.1.4"
   },
   "resolutions": {
     "lodash": "3.x"
