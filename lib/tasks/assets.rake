@@ -331,7 +331,7 @@ namespace :assets do
 						file += ".js"
 					end
 				end
-				if File.exists? "#{dir}/#{file}"
+				if File.exists? "#{dir}/#{file}" and not File.directory? "#{dir}/#{file}"
 					FileUtils.mkdir_p("#{Rails.root}/assets-clean_copy/" + File.dirname(file))
 					FileUtils.cp_r(dir + "/" + file, "#{Rails.root}/assets-clean_copy/" + File.dirname(file))
 				end
