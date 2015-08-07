@@ -18,7 +18,7 @@
     "tests"
   ],
   "dependencies": {
-      "r.js": "~2.1.18"
+      "r.js": "~2.1.18",
       "requirejs": "~2.1.18"
   },
   "devDependencies": {
