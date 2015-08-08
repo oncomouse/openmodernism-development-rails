@@ -1,4 +1,5 @@
 class AnthologiesController < ApplicationController
+	skip_before_filter :verify_authenticity_token
 	def index
 		if params[:no_preload]
 			models = Anthology.all
