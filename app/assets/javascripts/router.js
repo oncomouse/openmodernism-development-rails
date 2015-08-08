@@ -32,6 +32,10 @@ define([
 			options || (options = {});
 			
 			this.context = options.context;
+			
+			this.current_route = "";
+			
+			this.protected_routes = this.context.protected_routes;
 		
 			this.channel = {};
 			this.channel['route'] = postal.channel('route');
@@ -40,12 +44,21 @@ define([
 				this.routeReady();
 			}, this));
 			
+			this.channel['route'].subscribe('route?', _.bind(function(data,envelope) {
+				envelope.reply({
+					route: this.current_route,
+					protected: _.has(this.protected_routes, this.current_route)
+				});
+			}, this));
+			
 			this.channel['route'].subscribe('change', _.bind(function(data, envelope) {
 				
 				React.unmountComponentAtNode($('#app').get(0));
 				$('#app').html('').append('<h1 class="state-loading text-center">Loading</h1>');
 				
 				$('body').attr('class','loaded').addClass(data.route);
+				
+				this.current_route = _.findLastKey(this.routes, function(route) { return route == data.route; });
 				
 				/*
 				This is not a good solution:

@@ -31,6 +31,10 @@ define([
 			'anthologies': 'anthologies',
 			'anthology/:id': 'anthology'
 		};
+		
+		app.protected_routes = {
+			
+		};
 
 		app.clearAppCanvas = function() {
 			$('#app').html('');
@@ -38,7 +42,7 @@ define([
 
 		$(document).ready(function() {
 			// Generate the router:
-			app.router = new Router({routes: app.routes, context: app});
+			app.router = new Router({routes: _.merge(app.routes, app.protected_routes), context: app});
 			
 			// Attach screen size tests (they depend on jQuery):
 			_.each(['xs','sm','md','lg'], function(size) { 
