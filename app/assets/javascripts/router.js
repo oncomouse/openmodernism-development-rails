@@ -79,7 +79,7 @@ define([
 				*/
 				
 				if(_.has(this.protected_routes, this.current_route) && ! this.login_manager.authenticated) {
-					this.login_manager.show_login_page({redirect: data.route});
+					this.login_manager.show_login_page({redirect: window.location.hash });
 				} else {
 				
 					var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');

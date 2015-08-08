@@ -131,6 +131,11 @@ define([
 					message: 'Logged In Succesfully, Welcome Back!',
 					clear_callback: _.bind(function() { this.channel['login'].publish('submitted'); }, this)
 				});
+				if(window.session_redirect) {
+					window.location.hash = window.session_redirect;
+				} else {
+					// Figure out a default login route
+				}
 			}
 		},
 		login_form_submission_error: function(ev, xhr,	status, error){
