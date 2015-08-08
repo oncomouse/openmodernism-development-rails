@@ -10,6 +10,7 @@ define([
 	'utilities/alert_manager',
 	'components/login/login_link',
 	'components/login/login_modal',
+	'components/login/login_page',
 	'bootstrap/tab',
 	'bootstrap/modal',
 	'postal.request-response'
@@ -166,6 +167,13 @@ define([
 					if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
 			}
 			return null;
+		},
+		show_login_page: function(options) {
+			(options || options = {});
+			
+			window.session_redirect = _.has(options,'redirect') ? options.redirect : null;
+			
+			React.render(React.createElement(LoginPage), $('#app').get(0));
 		}
 	});
 	

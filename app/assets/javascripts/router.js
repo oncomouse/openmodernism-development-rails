@@ -45,7 +45,7 @@ define([
 			}, this));
 			
 			this.channel['route'].subscribe('route?', _.bind(function(data,envelope) {
-				envelope.reply({
+				envelope.reply(null, {
 					route: this.current_route,
 					protected: _.has(this.protected_routes, this.current_route)
 				});
@@ -78,15 +78,20 @@ define([
 				This is weird, but seems the best way to deal with Rail's weird cache-busting.
 				*/
 				
-				var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');
-				if(typeof window.manifest !== 'undefined' && _.has(window.manifest.assets,'routes/' + data.route+'_wo_citeproc.js') && require.defined('citeproc/citeproc') && !require.defined('routes/' + data.route)) {
-					route_file = window.manifest['assets']['routes/' + data.route+'_wo_citeproc.js'].replace(/\.js$/,'')
-				}
-				require([route_file], _.bind(function() {
-					require(['routes/'+data.route], _.bind(function(route) {
-						route(this.context, data.params);
+				if(_.has(this.protected_routes, this.current_route) && ! this.login_manager.authenticated) {
+					this.login_manager.show_login_page({redirect: data.route});
+				} else {
+				
+					var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');
+					if(typeof window.manifest !== 'undefined' && _.has(window.manifest.assets,'routes/' + data.route+'_wo_citeproc.js') && require.defined('citeproc/citeproc') && !require.defined('routes/' + data.route)) {
+						route_file = window.manifest['assets']['routes/' + data.route+'_wo_citeproc.js'].replace(/\.js$/,'')
+					}
+					require([route_file], _.bind(function() {
+						require(['routes/'+data.route], _.bind(function(route) {
+							route(this.context, data.params);
+						}, this));
 					}, this));
-				}, this));
+				}
 			}, this));
 			
 			_.each(this.routes, function(val, key) {
