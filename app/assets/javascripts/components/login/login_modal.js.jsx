@@ -3,6 +3,7 @@ define([
 	'lodash',
 	'react',
 	'postal',
+	'components/login/login_form',
 	'mixins/route-architecture/RouteArchitectureMixin',
 	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'utilities/form_validation',
@@ -13,6 +14,7 @@ define([
 	_,
 	React,
 	postal,
+	LoginForm,
 	RouteArchitectureMixin,
 	PublishComponentMountMixin,
 	FormValidation
@@ -35,7 +37,8 @@ define([
 			this.channel['component'].subscribe('modal-change-tab', _.bind(this.changeModalTab,this));
 			
 			this.channel['login'].subscribe('show-modal', function(data, envelope) {
-				$('#LoginModal').modal('show');
+				options = (data.static) ? {show: true, keyboard: false, backdrop: 'static' } : 'show'
+				$('#LoginModal').modal(options);
 			});
 			this.channel['login'].subscribe('submitted', _.bind(function(data, envelope) {
 				this.removeModal();
@@ -120,24 +123,7 @@ define([
 					</ul>
 					<div className='tab-content panel panel-default' id='LoginModalContent'>
 					  <div className='tab-pane active panel-body' id='login-tab'>
-						<form onSubmit={this.handleSubmit} id="LoginForm" className="new_user" action="/users/sign_in" acceptCharset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="&#x2713;" />
-							<div className='form-group'>
-							  <label className="control-label" htmlFor="user_email">Email</label>
-							  <input placeholder="Your Email Address" className="form-control" required="required"  type="email" name="user[email]" id="user_email" />
-							</div>
-							<div className='form-group'>
-							  <label className="control-label" htmlFor="user_password">Password</label>
-							  <input placeholder="Password" className="form-control" required="required"  type="password" name="user[password]" id="user_password" />
-							</div>
-							<div className='remember form-group'>
-							  <input name="user[remember_me]" type="hidden" value="0" /><input type="checkbox" value="1" name="user[remember_me]" id="user_remember_me" />
-							  <label htmlFor="user_remember_me">Remember me</label>
-							</div>
-							<div className='form-group form-group-submit text-right'>
-							  <button className='btn btn-default' data-dismiss='modal'>Cancel</button>
-							  <input type="submit" value="Sign in" className="btn btn-primary" />
-							</div>
-						</form>
+						<LoginForm modal />
 					  </div>
 					  <div className='tab-pane panel-body' id='create-account-tab'>
 						<form onSubmit={this.handleSubmit} id="CreateAccountForm" action="/users" acceptCharset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="&#x2713;" />
