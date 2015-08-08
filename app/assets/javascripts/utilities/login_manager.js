@@ -3,6 +3,7 @@
 define([
 	'jquery',
 	'lodash',
+	'backbone',
 	'postal',
 	'react',
 	'utilities/form_validation',
@@ -11,11 +12,11 @@ define([
 	'components/login/login_modal',
 	'bootstrap/tab',
 	'bootstrap/modal',
-	'postal.request-response'//,
-	//'jquery-ujs'
+	'postal.request-response'
 ], function(
 	$,
 	_,
+	Backbone,
 	postal,
 	React,
 	FormValidation,
@@ -25,6 +26,30 @@ define([
 ){
 	var LoginManager = Backbone.Model.extend({
 		initialize: function() {
+			this.channel = {};
+			this.channel.subscriptions = {};
+			this.channel['route'] = postal.channel('route');
+			
+			this.original_sync = true;
+			this.channel.subscriptions['route:ready'] = this.channel['route'].subscribe('ready', _.bind(function(data, envelope) {
+				// Override Backbone.sync to send our API headers. This is the major work of the LoginManager:
+				Backbone.original_sync = Backbone.sync;
+				Backbone.sync = function(method, model, options) {
+				    _.defaults(options || (options = {}), {
+				    	headers: {}
+				    });
+					if(_.has(window.session_user, 'email')) {
+						options.headers['X-API-EMAIL'] = window.session_user['email'];
+						options.headers['X-API-TOKEN'] = window.session_user['authentication_token'];
+					}
+				
+					return Backbone.original_sync(method, model, options);
+				};
+				this.original_sync = false;
+				postal.unsubscribe(this.channel.subscriptions['route:ready']);
+			}, this));
+			
+			
 			
 			window.session_user = {};
 			if(this.getCookie('API-USER') != "not_logged_in") {
@@ -42,7 +67,6 @@ define([
 				$('#LoginModal').get(0)
 			);
 			
-			this.channel = {};
 			this.channel['login'] = postal.channel('login');
 			this.channel['component'] = postal.channel('component');
 			
