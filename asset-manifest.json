@@ -29,13 +29,18 @@
     "/app/assets/javascripts/mixins/route-architecture/RouteArchitectureMixin.js": "c39f8a1c18e0c145de668b0f2d722f9a",
     "/app/assets/javascripts/mixins/publish-component-mount/PublishComponentMountMixin.js": "b2d3f31a88e6b63e01de189c90a248c4",
     "/app/assets/javascripts/mixins/login-dependent/LoginDependentMixin.js": "81f58d505061137f24e321c10991f014",
-    "/app/assets/javascripts/utilities/form_validation.js": "41431562f23213c709938483093cd83b",
-    "/app/assets/javascripts/utilities/login_manager.js": "ed1a49b37d8bab608960273045fbf769",
+    "/app/assets/javascripts/utilities/form_validation.js": "eeb83c7d082a40953dc615d227daaf8d",
+    "/app/assets/javascripts/utilities/login_manager.js": "dbf0ec6045ea55535c3d32b6ab3c852c",
     "/app/assets/javascripts/router.js": "6e1c316a4201cf96b28fa602af6170a5",
     "/app/assets/javascripts/app.js": "f4fb267baf120a3420abe9838415821d",
     "/app/assets/javascripts/main.js.erb": "6c600b21909e611ac204a9a65f00a2df",
     "/app/assets/javascripts/components/login/login_link.js.jsx": "20650217b5277c88bb8746977c83df15",
-    "/app/assets/javascripts/components/login/login_modal.js.jsx": "f04c3d1e0cb3c9fd2c9d53e714814fc4"
+    "/app/assets/javascripts/components/login/login_modal.js.jsx": "f04c3d1e0cb3c9fd2c9d53e714814fc4",
+    "vendor/assets/bootstrap-sass-official/assets/javascripts/bootstrap/alert.js": "ac9c0d62e9f1198d915aac1465bdcb64",
+    "/app/assets/javascripts/utilities/alert_manager.js": "a4bfcf8fea3dfffd297d1d80af198c5c",
+    "/app/assets/javascripts/components/login/login_link.js": "088eab1637f13c7814385d0bbe32dfcc",
+    "vendor/assets/bootstrap-sass-official/assets/javascripts/bootstrap/tab.js": "34a34f05c5ad6f14bf5fba25d4c85856",
+    "/app/assets/javascripts/components/login/login_modal.js": "67b3ba97586da64c89eb6b562311d86f"
   },
   "routes/anthologies.js": {
     "vendor/assets/js-yaml/dist/js-yaml.js": "42ce60df491674f001595f1214a552ac",
@@ -50,7 +55,10 @@
     "/app/assets/javascripts/routes/anthologies.js": "3c97605ab28068594dda0cc7cbb8e365",
     "/app/assets/javascripts/components/sidebar/sidebar.js.jsx": "28370a2d79c3ba2025f9da11e4bfedd2",
     "/app/assets/javascripts/components/anthology/anthologies.js.jsx": "6f57637ff7f182b2cfc784f43486c4a2",
-    "/app/assets/javascripts/components/sidebar/routes/anthologies.js.jsx": "eeb36cb010998cff8b4d4b81c0dd7b1d"
+    "/app/assets/javascripts/components/sidebar/routes/anthologies.js.jsx": "eeb36cb010998cff8b4d4b81c0dd7b1d",
+    "/app/assets/javascripts/components/sidebar/sidebar.js": "37761fc861aa6c70c02ba8ef100d5c8a",
+    "/app/assets/javascripts/components/anthology/anthologies.js": "c5897f6428da1475fc966ee4804ba2b6",
+    "/app/assets/javascripts/components/sidebar/routes/anthologies.js": "f6deb162dfe04f66452afa78fcd5db6d"
   },
   "routes/anthology.js": {
     "vendor/assets/js-yaml/dist/js-yaml.js": "42ce60df491674f001595f1214a552ac",
@@ -61,7 +69,9 @@
     "/app/assets/javascripts/models/anthology.js": "4a0c5ed203461a90cc11c50dc83cc36a",
     "/app/assets/javascripts/routes/anthology.js": "7b04c9c7228d045340aed2f7f7520848",
     "/app/assets/javascripts/components/sidebar/sidebar.js.jsx": "28370a2d79c3ba2025f9da11e4bfedd2",
-    "/app/assets/javascripts/components/anthology/anthologies.js.jsx": "6f57637ff7f182b2cfc784f43486c4a2"
+    "/app/assets/javascripts/components/anthology/anthologies.js.jsx": "6f57637ff7f182b2cfc784f43486c4a2",
+    "/app/assets/javascripts/components/sidebar/sidebar.js": "37761fc861aa6c70c02ba8ef100d5c8a",
+    "/app/assets/javascripts/components/anthology/anthologies.js": "c5897f6428da1475fc966ee4804ba2b6"
   },
   "routes/document.js": {
     "vendor/assets/loremjs/lorem.js": "08b272b4c2f801cf75937fc1680bead4",
@@ -96,7 +106,8 @@
     "/app/assets/javascripts/models/metadata.js": "05c54fd67dce867bc584992ea74cdcde",
     "/app/assets/javascripts/models/document.js": "99ce66cbc8a50a272005d8583b2cbc23",
     "/app/assets/javascripts/routes/document.js": "2589de5e4d87dc658724a934b85936ff",
-    "/app/assets/javascripts/components/document/document.js.jsx": "58faef451115ac4193e73c74f74e0bcf"
+    "/app/assets/javascripts/components/document/document.js.jsx": "58faef451115ac4193e73c74f74e0bcf",
+    "/app/assets/javascripts/components/document/document.js": "c2953d79187374f1d24fdb8e0cf2a39b"
   },
   "routes/documents.js": {
     "vendor/assets/loremjs/lorem.js": "08b272b4c2f801cf75937fc1680bead4",
@@ -139,7 +150,11 @@
     "/app/assets/javascripts/components/sidebar/sidebar.js.jsx": "28370a2d79c3ba2025f9da11e4bfedd2",
     "/app/assets/javascripts/components/document/short_view.js.jsx": "b1deed6d3331e8c6901075ea60f8a392",
     "/app/assets/javascripts/components/document/documents.js.jsx": "9aeda3ba785eec1b30c0d4fa8169afef",
-    "/app/assets/javascripts/components/sidebar/routes/documents.js.jsx": "246b3a6bb9cfe1d909ff032ac77983ce"
+    "/app/assets/javascripts/components/sidebar/routes/documents.js.jsx": "246b3a6bb9cfe1d909ff032ac77983ce",
+    "/app/assets/javascripts/components/sidebar/sidebar.js": "37761fc861aa6c70c02ba8ef100d5c8a",
+    "/app/assets/javascripts/components/document/short_view.js": "729b1944d0a7dde34273286088a5c2b8",
+    "/app/assets/javascripts/components/document/documents.js": "c20b1d2265b700ce66f9c4866e835735",
+    "/app/assets/javascripts/components/sidebar/routes/documents.js": "fc4327981460b5f24069dd3bf84194c3"
   },
   "routes/generic.js": {
     "app/assets/javascripts/routes/generic.js": "6a2b3abc9d6b4cc6f2662722dd929e25",
@@ -168,7 +183,8 @@
     "/app/assets/javascripts/models/metadata.js": "05c54fd67dce867bc584992ea74cdcde",
     "/app/assets/javascripts/models/document.js": "99ce66cbc8a50a272005d8583b2cbc23",
     "/app/assets/javascripts/routes/document.js": "2589de5e4d87dc658724a934b85936ff",
-    "/app/assets/javascripts/components/document/document.js.jsx": "58faef451115ac4193e73c74f74e0bcf"
+    "/app/assets/javascripts/components/document/document.js.jsx": "58faef451115ac4193e73c74f74e0bcf",
+    "/app/assets/javascripts/components/document/document.js": "c2953d79187374f1d24fdb8e0cf2a39b"
   },
   "routes/documents_wo_citeproc.js": {
     "vendor/assets/loremjs/lorem.js": "08b272b4c2f801cf75937fc1680bead4",
@@ -201,6 +217,10 @@
     "/app/assets/javascripts/components/sidebar/sidebar.js.jsx": "28370a2d79c3ba2025f9da11e4bfedd2",
     "/app/assets/javascripts/components/document/short_view.js.jsx": "b1deed6d3331e8c6901075ea60f8a392",
     "/app/assets/javascripts/components/document/documents.js.jsx": "9aeda3ba785eec1b30c0d4fa8169afef",
-    "/app/assets/javascripts/components/sidebar/routes/documents.js.jsx": "246b3a6bb9cfe1d909ff032ac77983ce"
+    "/app/assets/javascripts/components/sidebar/routes/documents.js.jsx": "246b3a6bb9cfe1d909ff032ac77983ce",
+    "/app/assets/javascripts/components/sidebar/sidebar.js": "37761fc861aa6c70c02ba8ef100d5c8a",
+    "/app/assets/javascripts/components/document/short_view.js": "729b1944d0a7dde34273286088a5c2b8",
+    "/app/assets/javascripts/components/document/documents.js": "c20b1d2265b700ce66f9c4866e835735",
+    "/app/assets/javascripts/components/sidebar/routes/documents.js": "fc4327981460b5f24069dd3bf84194c3"
   }
 }
