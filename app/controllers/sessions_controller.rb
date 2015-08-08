@@ -1,21 +1,70 @@
 class SessionsController < Devise::SessionsController
 	skip_before_filter :authenticate_user!, :only => [:create, :new]
-	skip_authorization_check only: [:create, :failure, :show_current_user, :options, :new]
+	skip_before_filter :verify_signed_out_user
+	skip_before_filter :verify_authenticity_token
+	skip_before_filter :authenticate_user_from_token!, :only => [:create, :new]
+	
+	clear_respond_to
 	respond_to :json
-	
-	def create
-		self.resource = warden.authenticate!(auth_options)
-		set_flash_message(:notice, :signed_in) if is_flashing_format?
-		sign_in(resource_name, resource)
-		yield resource if block_given?
-		render json: resource.to_json
+
+	def new
+		self.resource = resource_class.new(sign_in_params)
+		clean_up_passwords(resource)
+		respond_with(resource, serialize_options(resource))
 	end
-	
+
+	def create
+
+		respond_to do |format|
+			format.html {
+				super
+			}
+			format.json {
+
+				resource = resource_from_credentials
+				return invalid_login_attempt unless resource
+
+				if resource.valid_password?(params[:user][:password])
+					render :json => { email: resource.email, :auth_token => resource.authentication_token , success: true }
+				else
+					invalid_login_attempt
+				end
+			}
+		end
+	end
+
 	def destroy
-		signed_out = (Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
-		set_flash_message :notice, :signed_out if signed_out && is_flashing_format?
-		yield if block_given?
-		render json: {}
-		#respond_to_on_destroy
+		
+		(Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
+		respond_to do |format|
+			format.html {
+				super
+			}
+			format.json {
+				user = User.find_by_authentication_token(request.headers['X-API-TOKEN'])
+				if user
+					user.reset_authentication_token!
+					user.save
+					render :json => { :message => 'Session deleted.' , :success => true}
+				else
+					render :json => { :success => false, :message => 'Invalid token.' }
+				end
+			}
+		end
+	end
+
+	protected
+	def invalid_login_attempt
+		warden.custom_failure!
+		render json: { success: false, message: 'Error with your login or password' }#, status: 401
+	end
+
+	def resource_from_credentials
+		data = { email: params[:user][:email] }
+		if res = resource_class.find_for_database_authentication(data)
+			if res.valid_password?(params[:user][:password])
+				res
+			end
+		end
 	end
 end

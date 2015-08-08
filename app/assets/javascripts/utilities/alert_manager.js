@@ -2,10 +2,9 @@
 
 define([
 	'jquery',
-	'underscore',
-	'jst',
+	'lodash',
 	'bootstrap/alert'
-], function($,_, JST) {
+], function($,_) {
 	var AlertManager = {
 		show_alert: function(alert) {
 			alert = typeof alert === 'String' ? { message: alert } : alert;
@@ -15,7 +14,8 @@ define([
 				target: $('body'),
 				timeout: 5000,
 				dismissable: true,
-				id: null
+				id: null,
+				clear_callback: function(){}
 			});
 			if (!alert.target instanceof $) {
 				alert.target = $(alert.target);
@@ -23,9 +23,10 @@ define([
 			while(alert.target.css('display') != 'block') {
 				alert.target = alert.target.parent();
 			}
-			$(JST['alerts/default']({alert: alert}))
-							.attr('id', alert.id)
-			                .insertBefore(alert.target);
+			$(_.template('<div class="om-alert alert alert-<%=alert.type%> <% if(alert.dismissable){%>alert-dismissible<%}%>" role="alert"><% if(alert.dismissable){%><button type="button" class="close" data-dismiss="alert" aria-label="Close"><span aria-hidden="true">&times;</span></button><%}%><%=alert.message%></div>')({alert: alert}))
+				.on('clear.alert', alert.clear_callback)
+				.attr('id', alert.id)
+                .insertBefore(alert.target);
 			if(alert.timeout !== null) {
 			    window.setTimeout(_.bind(function() {
 			        this.clear_alerts();
@@ -52,9 +53,11 @@ define([
 			}
 			
 			if(options.now) {
+				options.target.trigger('clear.alert');
 				options.target.remove();
 			} else {
 		        options.target.fadeTo(500, 0).slideUp(500, function(){
+					$(this).trigger('clear.alert');
 		            $(this).remove(); 
 		        });
 			}

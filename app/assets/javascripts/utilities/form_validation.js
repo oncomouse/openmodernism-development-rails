@@ -92,6 +92,19 @@ if (!Function.prototype.bind) {
 				$('form[novalidate]').off('submit.formvalidation').find('*[type=submit]').off('click.formvalidation');
 			}
 		},
+		clear: function(form) {
+			if(typeof form === 'undefined') {
+				form = $('form');
+				handle_novalidate = true;
+			} else if(!(form instanceof $)) {
+				form = $(form);
+			}
+			
+			$(form).off('submit.formvalidation');
+			$(form).find('*[type=submit]').off('click.formvalidation');
+			$(form).find('input,select,textarea').off('invald.formvalidation');
+			$('form[novalidate]').off('submit.formvalidation');
+		},
 		setup_input: function(input) {
 			if(!(input instanceof $)) {
 				input = $(input);
@@ -157,7 +170,7 @@ if (!Function.prototype.bind) {
 						result = true;
 					}
 					if(result && test.match(input)) {
-						if(!test.test(input)) {
+						if(!test.test(input, form)) {
 							result = false;
 							error_msg = test.msg;
 						}
@@ -191,7 +204,7 @@ if (!Function.prototype.bind) {
 			}
 			return valid;
 		},
-		// addTest({match: function(input){}, test: function(input) {}, msg: ''})
+		// addTest({match: function(input){}, test: function(input,form) {}, msg: ''})
 		//	 OR
 		// addTest(function(input) {}, function(input) {}, '') // match, test, msg
 		addTest: function() {
@@ -232,73 +245,73 @@ if (!Function.prototype.bind) {
 	FormValidation.addTest({
 		name: 'required',
 		match: function(input) { return input.attr('required') == 'required'; },
-		test: function(input) { return input.val() != ''; },
+		test: function(input,form) { return input.val() != ''; },
 		msg: 'This element is required.'
 	});
 	FormValidation.addTest({
 		name: 'email',
 		match: function(input) { return input.attr('type') == 'email'; },
-		test: function(input) { return input.val().match(/^[a-zA-Z0-9.!#$%&'*+-\/=?\^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/); },
+		test: function(input,form) { return input.val().match(/^[a-zA-Z0-9.!#$%&'*+-\/=?\^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/); },
 		msg: 'Please enter a valid email address.'
 	});
 	FormValidation.addTest({
 		name: 'url',
 		match: function(input) { return input.attr('type') == 'url'; },
-		test: function(input) { return input.val().match(/[a-z][\-\.+a-z]*:\/\//i); },
+		test: function(input,form) { return input.val().match(/[a-z][\-\.+a-z]*:\/\//i); },
 		msg: 'Please enter a valid url.'
 	});
 	FormValidation.addTest({
 		name: 'color',
 		match: function(input) { return input.attr('type') == 'color'; },
-		test: function(input) { return input.val().match(/(\#[0-9A-Fa-f]{6}|\#[0-9A-Fa-f]{3})/); },
+		test: function(input,form) { return input.val().match(/(\#[0-9A-Fa-f]{6}|\#[0-9A-Fa-f]{3})/); },
 		msg: 'Please enter a valid color (#000 OR #000000).'
 	});
 	FormValidation.addTest({
 		name: 'max',
 		match: function(input) { return input.attr('max') !== undefined; },
-		test: function(input) { return parseInt(input.val()) <= parseInt(input.attr('max')); },
+		test: function(input,form) { return parseInt(input.val()) <= parseInt(input.attr('max')); },
 		msg: 'Please enter a value less than the max.'
 	});
 	FormValidation.addTest({
 		name: 'min',
 		match: function(input) { return input.attr('min') !== undefined; },
-		test: function(input) { return parseInt(input.val()) >= parseInt(input.attr('min')); },
+		test: function(input,form) { return parseInt(input.val()) >= parseInt(input.attr('min')); },
 		msg: 'Please enter a value greater than the min.'
 	});
 	FormValidation.addTest({
 		name: 'maxLength',
 		match: function(input) { return input.attr('maxLength') !== undefined; },
-		test: function(input) { return input.get(0).validity.valid; },
+		test: function(input,form) { return input.get(0).validity.valid; },
 		msg: 'Entered string is too long.'
 	});
 	FormValidation.addTest({
 		name: 'minLength',
 		match: function(input) { return input.attr('minLength') !== undefined; },
-		test: function(input) { return input.get(0).validity.valid; },
+		test: function(input,form) { return input.get(0).validity.valid; },
 		msg: 'Entered string is too shot.'
 	});
 	FormValidation.addTest({
 		name: 'pattern',
 		match: function(input) { return input.attr('pattern') !== undefined; },
-		test: function(input) { return input.match(new RegExp(input.val())); },
+		test: function(input,form) { return input.match(new RegExp(input.val())); },
 		msg: 'Enter a value matching the required pattern.'
 	});
 	FormValidation.addTest({
 		name: 'match',
 		match: function(input) { return input.attr('data-match') !== undefined; },
-		test: function(input) { var input2 = $(input.attr('data-match')); return input.val() == input2.val(); },
+		test: function(input,form) { var input2 = $(form).find(input.attr('data-match')); return input.val() == input2.val(); },
 		msg: 'Entered value does not match.'
 	});
 	FormValidation.addTest({
 		name: 'number',
 		match: function(input) { return input.attr('type') == 'number'; },
-		test: function(input) { if (input.attr('min') !== undefined || input.attr('max') !== undefined) { return true; } return /^[0-9](\.[0-9]+)+$/.test(input.val());},
+		test: function(input,form) { if (input.attr('min') !== undefined || input.attr('max') !== undefined) { return true; } return /^[0-9](\.[0-9]+)+$/.test(input.val());},
 		msg: 'Please enter a valid number'
 	});
 	FormValidation.addTest({
 		name: 'date',
 		match: function(input) { return input.attr('type') == 'date'; },
-		test: function(input) { if (input.attr('pattern') !== undefined) { return true; } return input.val().match(/[0-9]{4}\/[0-9]{2}\/[0-9]{2}/);},
+		test: function(input,form) { if (input.attr('pattern') !== undefined) { return true; } return input.val().match(/[0-9]{4}\/[0-9]{2}\/[0-9]{2}/);},
 		msg: 'Please enter a valid date (YYYY-MM-DD)'
 	});
 	/*
@@ -315,7 +328,7 @@ if (!Function.prototype.bind) {
 	FormValidation.addTest({
 		name: 'tel',
 		match: function(input) { return input.attr('type') == 'tel'; },
-		test: function(input) { 
+		test: function(input,form) { 
 			if (input.attr('pattern') !== undefined) { return true; }
 			var country = 'US', regex;
 			if (input.attr('country') !== undefined) {

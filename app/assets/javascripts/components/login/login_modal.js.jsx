@@ -6,7 +6,8 @@ define([
 	'mixins/route-architecture/RouteArchitectureMixin',
 	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'utilities/form_validation',
-	'bootstrap/modal'
+	'bootstrap/modal',
+	'bootstrap/tab'
 ], function(
 	$,
 	_,
@@ -41,8 +42,8 @@ define([
 			}, this));
 			
 			return {
-				tab: 'login'
-			};
+				tab: 'login-tab'
+			}
 		},
 		mountComponent: function(data, envelope) {
 
@@ -51,55 +52,52 @@ define([
 		componentDidMount: function() {
 			this.hookupForm();
 			$('#LoginModal').on('hide.bs.modal', _.bind(this.cleanModal, this));
-
+			$('a[data-toggle="tab"]').on('show.bs.tab', _.bind(function (e) {
+				FormValidation.clear_errors('#LoginModal .active form');
+				FormValidation.clear(e.relatedTarget);
+				this.hookupForm();
+				this.setState({tab: $(e.target).attr('id')});
+			}, this));
 		},
 		componentDidUpdate: function(prevProps, prevState) {
 			this.hookupForm();
 		},
 		changeModalTab(data, envelope) {
 			if(data.modal == 'LoginModal') {
-				this.setState({tab: data.tab});
-				FormValidation.clear_errors('#LoginModal form');
+				FormValidation.clear_errors('#LoginModal .active form');
 			}
 		},
 		cleanModal: function() {
-			if ($('#LoginModal form').attr('action') != '#login-form') { this.load_pane_template('login-form'); }
-			$('#LoginModal input').val('');
-			FormValidation.clear_errors('#LoginModal form');
+			$('#LoginModalTabs #login-tab').tab('show');
+			$('#LoginModal input[type!=submit]').val('');
+			FormValidation.clear_errors('#LoginModal .active form');
 			this.channel['login'].publish('hide-modal', {});
 		},
 		removeModal: function() {
 			$('#LoginModal').modal('hide');
 		},
 		hookupForm: function() {
-			// Turn off form submission after the form validator:
-			$('#LoginModal form').attr('data-nosubmit', 'data-nosubmit');
-			
 			// Hook up form validation:
-			FormValidation.setup($('#LoginModal form'));
-			
-			// Trigger the modal submission handler when validation is finished:
-			$('#LoginModal form').on('success.validation', _.bind(this.handleModalSubmit, this));
+			FormValidation.setup($('#LoginModal .active form'));
 			
 			// Resize the modal:
 			$('#LoginModal').modal('handleUpdate');
 		},
-		handleModalSubmit: function(ev) {
+		handleSubmit: function(ev) {
 			ev.stopPropagation();
 			ev.preventDefault();
 			
 			this.channel['login'].publish('submit', {
 				event: ev,
-				formType: this.state.tab
 			});
 		},
 		render: function() {
 			var title;
 			switch(this.state.tab) {
-				case 'login':
+				case 'login-tab':
 					title = 'Please Login';
 					break;
-				case 'create_user':
+				case 'create-user-tab':
 					title = 'Create Account';
 					break;
 				default:
@@ -107,158 +105,66 @@ define([
 					break;
 			}
 			return (
-				<div className="modal-dialog">
-					<div className="modal-content">
-						<div className="modal-header">
-							<button type="button" className="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
-							<h4 className="modal-title">{title}</h4>
-						</div>
-						<LoginModalForm tab={this.state.tab} />
+			  <div className='modal-dialog'>
+				<div className='modal-content'>
+				  <div className='modal-header'>
+					<button aria-label='Close' className='close' data-dismiss='modal' type='button'>
+					  <span aria-hidden>&times;</span>
+					</button>
+					<h4 className='modal-title'>{title}</h4>
+				  </div>
+				  <div className='modal-body'>
+					<ul className='nav nav-tabs' id='LoginModalTabs'>
+					  <li className='active'><a data-toggle="tab" href="#login-tab">Login</a></li>
+					  <li><a data-toggle="tab" href="#create-account-tab">Create Account</a></li>
+					</ul>
+					<div className='tab-content panel panel-default' id='LoginModalContent'>
+					  <div className='tab-pane active panel-body' id='login-tab'>
+						<form onSubmit={this.handleSubmit} id="LoginForm" className="new_user" action="/users/sign_in" acceptCharset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="&#x2713;" />
+							<div className='form-group'>
+							  <label className="control-label" htmlFor="user_email">Email</label>
+							  <input placeholder="Your Email Address" className="form-control" required="required"  type="email" name="user[email]" id="user_email" />
+							</div>
+							<div className='form-group'>
+							  <label className="control-label" htmlFor="user_password">Password</label>
+							  <input placeholder="Password" className="form-control" required="required"  type="password" name="user[password]" id="user_password" />
+							</div>
+							<div className='remember form-group'>
+							  <input name="user[remember_me]" type="hidden" value="0" /><input type="checkbox" value="1" name="user[remember_me]" id="user_remember_me" />
+							  <label htmlFor="user_remember_me">Remember me</label>
+							</div>
+							<div className='form-group form-group-submit text-right'>
+							  <button className='btn btn-default' data-dismiss='modal'>Cancel</button>
+							  <input type="submit" value="Sign in" className="btn btn-primary" />
+							</div>
+						</form>
+					  </div>
+					  <div className='tab-pane panel-body' id='create-account-tab'>
+						<form onSubmit={this.handleSubmit} id="CreateAccountForm" action="/users" acceptCharset="UTF-8" data-remote="true" method="post"><input name="utf8" type="hidden" value="&#x2713;" />
+							<div className='form-group'>
+							  <label className="control-label" htmlFor="user_email">Email</label>
+							  <input placeholder="Your Email Address" className="form-control" required="required"  type="email" name="user[email]" id="user_email" />
+							</div>
+							<div className='form-group'>
+							  <label className="control-label" htmlFor="user_password">Password</label>
+							  <input placeholder="Password" className="form-control" required="required"  data-match="#user_password_confirmation" minLength="8" type="password" name="user[password]" id="user_password" />
+							</div>
+							<div className='form-group'>
+							  <label className="control-label" htmlFor="user_password2">Confirm Password</label>
+							  <input placeholder="Confirm Password" className="form-control" required="required"  data-match="#user_password" minLength="8" type="password" name="user[password_confirmation]" id="user_password_confirmation" />
+							</div>
+							<div className='form-group form-group-submit text-right'>
+							  <button className='btn btn-default' data-dismiss='modal'>Cancel</button>
+							  <input type="submit" value="Sign in" className="btn btn-primary" />
+							</div>
+						</form>
+					  </div>
 					</div>
+				  </div>
 				</div>
+			</div>
 			);
 		}
 	});
-	var LoginModalForm = React.createClass({
-		mixins: [
-			React.addons.PureRenderMixin,
-		],
-		propTypes: {
-			tab: React.PropTypes.string.isRequired,
-		},
-		getInitialState: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['component'] = postal.channel('component');
-			return null;
-		},
-		handleTabChange: function(ev) {
-			ev.stopPropagation();
-			ev.preventDefault();
-			
-			if(!$(ev.target).parent().hasClass('active')) {
-				this.channel['component'].publish('modal-change-tab', {
-					modal: 'LoginModal',
-					tab: $(ev.target).attr('data-tab')
-				});
-			}
-		},
-		render: function() {
-			var loginFormContent, loginFooter;
-			return (
-				<form action={'#' + this.props.tab + '-form'}>
-					<div className="modal-body">
-						<ul className="nav nav-tabs">
-							<li role="presentation" className={(this.props.tab == 'login') ? 'active' : ''}>
-								<a href="#" className="login-modal-tab"	data-tab="login" onClick={this.handleTabChange}>Login</a>
-							</li>
-							<li role="presentation" className={(this.props.tab == 'create_user') ? 'active' : ''}>
-								<a href="#" className="login-modal-tab"	data-tab="create_user" onClick={this.handleTabChange}>Create Account</a>
-							</li>
-						</ul>
-						<div id="LoginModalContent" className="panel panel-default">
-							<LoginModalFormContent tab={this.props.tab}/>
-						</div>
-					</div>
-					<div className="modal-footer">
-						<LoginModalFooter tab={this.props.tab}/>
-					</div>
-				</form>
-			);
-		}
-	});
-	
-	var LoginModalFormContent = React.createClass({
-		mixins: [
-			React.addons.PureRenderMixin,
-		],
-		propTypes: {
-			tab: React.PropTypes.string.isRequired,
-		},
-		render: function() {
-			var formContent;
-			switch(this.props.tab){
-				case 'login':
-					formContent = (
-						<div className="login-form body">
-							<div className="panel-body">
-								<div className="form-group">
-									<label className="control-label" htmlFor="email">Email Address:</label>
-									<input type="email" className="form-control" id="email" placeholder="Email" required />
-								</div>
-								<div className="form-group">
-									<label className="control-label" htmlFor="password">Password</label>
-									<input type="password" className="form-control" id="password" placeholder="Password" required />
-								</div>
-							</div>
-						</div>
-					);
-					break;
-				case 'create_user':
-					formContent = (
-						<div className="create-form body">
-							<div className="panel-body">
-								<div className="form-group">
-									<label className="control-label" htmlFor="name">Your Name:</label>
-									<input type="input" className="form-control" id="name" placeholder="Name" required />
-								</div>
-								<div className="form-group">
-									<label className="control-label" htmlFor="email">Email Address:</label>
-									<input type="email" className="form-control" id="email" placeholder="Email" required />
-								</div>
-								<div className="form-group">
-									<label className="control-label" htmlFor="password">Password</label>
-									<input type="password" className="form-control" id="password" placeholder="Password" required data-match="password2" minLength="6" />
-								</div>
-								<div className="form-group">
-									<label className="control-label" htmlFor="password2">Verify Password</label>
-									<input type="password" className="form-control" id="password2" placeholder="Verify Password" required data-match="password" minLength="6" />
-								</div>
-							</div>
-						</div>
-					);
-					break;
-				default:
-					formContent = (<div className="body"></div>);
-					break;
-			}
-			return formContent;
-		}
-	});
-	
-	
-	var LoginModalFooter = React.createClass({
-		propTypes: {
-			tab: React.PropTypes.string.isRequired,
-		},
-		render: function() {
-			var footerContent;
-			switch(this.props.tab) {
-				case 'login':
-					footerContent = (
-						<div>
-							<button type="button" className="btn btn-default" data-dismiss="modal">Cancel</button>
-							<button type="submit" className="btn btn-primary submit" data-action="login">Login</button>
-						</div>
-					);
-					break;
-				case 'create_user':
-					footerContent = (
-						<div>
-							<button type="button" className="btn btn-default" data-dismiss="modal">Cancel</button>
-							<button type="submit" className="btn btn-primary submit" data-action="create">Create Account</button>
-						</div>
-					)
-					break;
-				default:
-					footerContent = (<div className="body"></div>);
-					break;
-			}
-		
-			return footerContent;
-		}
-	});
-	
 	return LoginModal;
 });

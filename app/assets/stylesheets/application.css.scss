@@ -100,6 +100,9 @@ body.loaded {
 			display: none;
 		}
 	}
+	.form-group-submit {
+		padding-top: $line-height-computed * 2;
+	}
 }
 
 .state-loading {
