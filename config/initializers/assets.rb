@@ -53,5 +53,8 @@ Rails.application.configure do
 		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
 			file.gsub("#{Rails.root}/app/assets/javascripts/","")
 		end
+		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
+			file.gsub("#{Rails.root}/app/assets/javascripts/","").gsub(/\.js$/,"_wo_citeproc.js")
+		end
 	end
 end
