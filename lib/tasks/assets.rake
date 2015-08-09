@@ -438,7 +438,7 @@ namespace :assets do
 			mod.each{|f|
 				actual_f = asset_dirs.map{ |d| if File.exists?("#{d}/#{f}") then "#{d}/#{f}" elsif File.exists?("#{d}/#{f}.erb") then "#{d}/#{f}.erb" elsif File.exists?("#{d}/#{f}.jsx") then "#{d}/#{f}.jsx" else nil end}.delete_if{|x| x.nil?}.first
 				next if actual_f.nil? or not File.exists? actual_f
-				actual_f.sub!(Rails.root.to_s,"")
+				actual_f.sub!(Rails.root.to_s+"/","")
 				asset_manifest[file][actual_f] = Digest::MD5.hexdigest(File.read("#{Rails.root}/#{actual_f}"))
 			}
 		}
