@@ -174,7 +174,7 @@ define([
 			return null;
 		},
 		show_login_page: function(options) {
-			(options || options = {});
+			options || (options = {});
 			
 			window.session_redirect = _.has(options,'redirect') ? options.redirect : null;
 			
