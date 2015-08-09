@@ -82,7 +82,7 @@ namespace :assets do
 			fp.write(correct_main)
 		end
 		File.open("#{Rails.root}/dist/javascripts/main.js","w") do |fp|
-			fp.write(Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding()).sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.generate(shim_manifest)}; app.start();})")))
+			fp.write(Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding()).sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.pretty_generate(shim_manifest)}; app.start();})")))
 		end
 	end
 	
@@ -223,7 +223,7 @@ namespace :assets do
 
 		FileUtils.mkdir_p("#{Rails.root}/tmp/")
 		File.open("#{Rails.root}/tmp/build-manifest.json", "w") do |fp|
-			fp.write(JSON.generate(built_modules))
+			fp.write(JSON.pretty_generate(built_modules))
 		end
 		
 		config['appDir'] = "#{Rails.root}/assets-clean_copy"
@@ -233,7 +233,7 @@ namespace :assets do
 		config['optimize'] = 'none'
 		
 		File.open("#{Rails.root}/app.build.js", 'w') do |json_fp|
-			json_fp.write(JSON.generate(config))
+			json_fp.write(JSON.pretty_generate(config))
 		end
 	end
 
@@ -381,7 +381,7 @@ namespace :assets do
 			files_to_delete += Dir.glob("#{Rails.root}/public/assets/#{mod}-*.js")
 		end
 		File.open("#{Rails.root}/tmp/delete-manifest.json","w") do |fp|
-			fp.write JSON.generate(files_to_delete)
+			fp.write JSON.pretty_generate(files_to_delete)
 		end
 	end
 	task :restore_assets do
