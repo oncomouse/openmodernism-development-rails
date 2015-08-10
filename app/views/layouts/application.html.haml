@@ -10,12 +10,7 @@
 			:javascript
 				window.development = true
 		<!--[if lt IE 9]>
-		-if Rails.env == "development"
-			= javascript_include_tag "dest/respond.src.js"
-			= javascript_include_tag "css3-mediaqueries.js"
-			= javascript_include_tag "dist/html5shiv.js"
-		- else
-			= javascript_include_tag "polyfill"
+		= javascript_include_tag "polyfill"
 		<![endif]-->
 		= javascript_include_tag 'require'
 		= javascript_include_tag 'main'

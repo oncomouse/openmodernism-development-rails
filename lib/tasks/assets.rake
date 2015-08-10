@@ -45,6 +45,7 @@ namespace :assets do
 	
 	task :pack => [
 		"assets:environment",
+		"assets:clean",
 		"assets:make_app_build_js",
 		"assets:clean_copy",
 		"assets:run_r_js",
@@ -316,18 +317,10 @@ namespace :assets do
 	end
 
 	task :generate_polyfill do
-		if Dir.glob("#{Rails.root}/public/assets/polyfill-*.js").length == 0
-			puts "Running task assets:generate_polyfill"
-			polyfill = [
-				'/vendor/assets/respond/dest/respond.src.js',
-				'/vendor/assets/css3-mediaqueries-js/css3-mediaqueries.js',
-				'/vendor/assets/html5shiv/dist/html5shiv.js'
-			]
+		if not (file = Rails.application.assets.find_asset("polyfill")).nil?
 			FileUtils.mkdir_p "#{OUTPUT_DIR}/"
 			File.open("#{OUTPUT_DIR}/polyfill.js", 'w') do |poly_fp|
-				polyfill.each do |p|
-					poly_fp.write(IO.read "#{Rails.root}/#{p}")
-				end
+				poly_fp.write file.to_s
 			end
 		end
 	end
