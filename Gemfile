@@ -31,9 +31,6 @@ gem 'bootstrap-sass'
 # Use Capistrano for deployment
 # gem 'capistrano-rails', group: :development
 
-# Compile React components:
-gem 'babel-transpiler'
-
 # Login Manager:
 gem 'devise'
 
