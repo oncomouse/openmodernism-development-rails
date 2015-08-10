@@ -314,13 +314,17 @@ namespace :assets do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
 		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") }
 		
+		deleted_modules = []
+		
 		built_modules.each do |built_module|
 			next if not built_module.include? "_wo_citeproc"
 			if not build_dependencies[built_module.sub("_wo_citeproc","")].include? "citeproc"
 				FileUtils.rm "#{OUTPUT_DIR}/#{built_module}.js"
-				built_modules.delete("#{built_module}")
+				deleted_modules.push(built_module)
 			end
 		end
+		
+		built_modules -= deleted_modules
 		
 		File.open("#{Rails.root}/tmp/build-manifest.json", "w"){ |fp| fp.write(JSON.generate(built_modules)) }
 	end
