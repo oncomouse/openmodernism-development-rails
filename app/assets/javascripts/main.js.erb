@@ -26,10 +26,10 @@
 
 	path_alias_and_directories = {
 		'citeproc' => 'vendor/citeproc-amd',
+		'bootstrap'=> 'assets/javascripts/bootstrap',
 		'sprintf' => 'vendor/sprintf-amd/sprintf-shim',
 		'writedown' => 'vendor/writedown/writedown',
-		'bootstrap'=> 'assets/javascripts/bootstrap',
-		'jquery-ui'=> 'ui',
+		'jquery-ui'=> 'ui/',
 		'has' => 'vendor/has/has'
 	}
 %>
@@ -41,9 +41,11 @@ var requirejs_configuration = {
 
 	'paths': {
 		<%=
-		Dir.glob("app/assets/**/*.js").map do |file|
-			"'#{file.gsub("app/assets/javascripts/","").gsub(/\.js$/,"")}': '" + javascript_path(file.gsub("app/assets/javascripts/","")).gsub(/^\/assets\//,"").gsub(/\.js$/,"") + "'"
-		 end.join(",\n\t\t") %>,
+		(Dir.glob("app/assets/javascripts/**/*.js") + Dir.glob("app/assets/javascripts/**/*.js.*")).uniq.map do |file|
+			next if file.include? "main.js"
+			"'#{file.sub('app/assets/javascripts/','').sub(/\.js(\.\w+)*$/,'')}': '#{javascript_path(file.sub('app/assets/javascripts/','').sub(/\.js(\.\w+)*$/,'.js')).sub(/\.js(\.\w+)*$/,'')}'"
+		end.delete_if{|x| x.nil?}.join(",\n\t\t")
+		 %>,
 		<%= 
 		path_vendor_libraries.map do |k,v|
 			output = javascript_path v
