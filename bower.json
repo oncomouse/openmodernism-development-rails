@@ -21,7 +21,6 @@
     "respond": "~1.4.2",
     "css3-mediaqueries-js": "~1.0.0",
     "html5shiv": "~3.7.2",
-    "r.js": "~2.1.18",
     "requirejs": "~2.1.18",
     "backbone.localstorage": "~1.1.16",
     "bootstrap-sass-official": "~3.3.5",

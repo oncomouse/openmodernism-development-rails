@@ -267,7 +267,7 @@ namespace :assets do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
 		puts "Running task assets:run_r_js"
 		if built_modules.length > 0
-			system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
+			system("node #{Rails.root}/node_modules/requirejs/bin/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
 		end
 		if Dir.glob("#{Rails.root}require-*.js").length == 0
 			FileUtils.mkdir_p "#{OUTPUT_DIR}"
