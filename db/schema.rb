@@ -11,14 +11,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 20150808013304) do
+ActiveRecord::Schema.define(version: 20150810204913) do
 
   create_table "anthologies", force: :cascade do |t|
     t.datetime "created_at",                null: false
     t.datetime "updated_at",                null: false
     t.string   "title"
     t.text     "toc",        default: "[]"
+    t.integer  "user_id"
   end
+
+  add_index "anthologies", ["user_id"], name: "index_anthologies_on_user_id"
 
   create_table "anthologies_documents", force: :cascade do |t|
     t.integer "document_id"
