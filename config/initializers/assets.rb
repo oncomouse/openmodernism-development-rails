@@ -12,17 +12,17 @@ Rails.application.configure do
 	# application.js, application.css, and all non-JS/CSS in app/assets folder are already added.
 	# config.assets.precompile += %w( search.js )
 
-	if Rails.env == "development"
-		config.assets.precompile += config.assets.paths.map do |path|
-			Dir.glob("#{path}/**/*.js").map do |file|
-				file.gsub(path+"/","")
-			end +
-			Dir.glob("#{path}/**/*.js.*").map do |file|
-				file.gsub(path+"/","").gsub(/\.js\..*$/,'.js')
-			end
-		
-		end.flatten
-	else
+	
+	config.assets.precompile += config.assets.paths.map do |path|
+		Dir.glob("#{path}/**/*.js").map do |file|
+			file.gsub(path+"/","")
+		end +
+		Dir.glob("#{path}/**/*.js.*").map do |file|
+			file.gsub(path+"/","").gsub(/\.js\..*$/,'.js')
+		end
+	
+	end.flatten
+	if Rails.env != "development"
 		config.assets.css_compressor = :sass
 		config.assets.javascript_compressor = :uglifier
 	    config.middleware.use Rack::Deflater
@@ -49,12 +49,12 @@ Rails.application.configure do
 	      remove_style_attributes: true,
 	      simple_boolean_attributes: true,
 	      simple_doctype: false
-		config.assets.precompile += %w( polyfill.js main.js app.js require.js )
-		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
-			file.gsub("#{Rails.root}/app/assets/javascripts/","")
-		end
-		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
-			file.gsub("#{Rails.root}/app/assets/javascripts/","").gsub(/\.js$/,"_wo_citeproc.js")
-		end
+#		config.assets.precompile += %w( polyfill.js main.js app.js require.js )
+#		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
+#			file.gsub("#{Rails.root}/app/assets/javascripts/","")
+#		end
+#		config.assets.precompile += Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").map do |file|
+#			file.gsub("#{Rails.root}/app/assets/javascripts/","").gsub(/\.js$/,"_wo_citeproc.js")
+#		end
 	end
 end
