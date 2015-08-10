@@ -53,7 +53,7 @@ namespace :assets do
 		"assets:generate_polyfill",
 		"assets:clean_output_dir",
 		"assets:generate_css",
-		"assets:uglify",
+		#"assets:uglify",
 		"assets:write_manifest",
 		"assets:produce_assets"
 	] 
@@ -100,11 +100,11 @@ namespace :assets do
 		config["modules"] = []
 		
 		build_mod = false
-		if manifest.has_key? MAIN_FILE
+		if manifest.has_key? MAIN_FILE.sub(/\.js$/,"")
 			if Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}*.js").length == 0
 				build_mod = true
 			else
-				manifest[MAIN_FILE].each{ |file, hash| if (not File.exists? file) or (Digest::SHA2.hexdigest(File.read(file)) != hash) then build_mod = true end }
+				manifest[MAIN_FILE.sub(/\.js$/,"")].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
 			end
 		else
 			build_mod = true
@@ -128,11 +128,11 @@ namespace :assets do
 			route_file.gsub!("#{Rails.root}/app/assets/javascripts/","").gsub!(/\.js$/,"")
 			build_mod = false
 						
-			if manifest.has_key? route_file+".js"
+			if manifest.has_key? route_file
 				if Dir.glob("#{Rails.root}/public/assets/#{route_file}*.js").length == 0
 					build_mod = true
 				else
-					manifest[route_file+".js"].each {|file, hash| if (not File.exists? file) or (Digest::SHA2.hexdigest(File.read(file)) != hash) then build_mod = true; break end }
+					manifest[route_file].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
 				end
 			else
 				build_mod = true
@@ -144,7 +144,7 @@ namespace :assets do
 					'exclude' => [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
 				}
 				# Include the sidebar component in the build, if it exists:
-				if File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js.jsx" or File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js"
+				if not Rails.application.assets.find_asset("components/sidebar/#{route_file}.js").nil?
 					mod_def['include'] = [
 						"components/sidebar/#{route_file}"
 					]
@@ -239,29 +239,22 @@ namespace :assets do
 	
 		# Read in the r.js build script:
 		requirejs_config = JSON.parse(IO.read("#{Rails.root}/app.build.js").gsub(/^\(/,"").gsub(/\)$/,"").gsub(/\'/,"\""))
-		
-		if requirejs_config['modules'].length > 0
-			Rake::Task["assets:compile_react"].invoke
-		end
 	
 		dirs = Dir.glob("#{Rails.root}/vendor/assets/*") + ["#{Rails.root}/app/assets/javascripts"]
 		requirejs_config['paths'].each do |k, file|
-			dirs.each do |dir|
-				if dir.include? "#{Rails.root}/vendor/assets/"	
-					if File.exists? "#{dir}/#{file}"
-					elsif File.exists? "#{dir}/#{file}.js"
-						file += ".js"
-					end
-				else
-					if File.exists? "#{dir}/#{file}.js"
-						file += ".js"
-					end
-				end
-				if File.exists? "#{dir}/#{file}"# and not File.directory? "#{dir}/#{file}"
-					FileUtils.mkdir_p("#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file))
-					FileUtils.cp_r(dir + "/" + file, "#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file))
+			sprockets_file = Rails.application.assets.find_asset(file+".js")
+			sprockets_dir = Rails.application.assets.paths.map{ |dir| if File.directory? "#{dir}/#{file}" then "#{dir}/#{file}" else nil end }.delete_if{|x|x.nil?}.first
+			if not sprockets_file.nil?
+				if not File.exists? "#{Rails.root}/tmp/assets-clean_copy/#{file}.js"
+					FileUtils.mkdir_p("#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file)) if not File.directory? "#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file)
+					File.open("#{Rails.root}/tmp/assets-clean_copy/#{file}.js","w") {|fp|fp.write(sprockets_file.to_s)}
 				end
 			end
+			if not sprockets_dir.nil?
+				if not File.directory? "#{Rails.root}/tmp/assets-clean_copy/#{file}"
+					FileUtils.cp_r sprockets_dir, "#{Rails.root}/tmp/assets-clean_copy/#{file}"
+				end
+			end	
 		end
 
 		File.open("#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}", 'w') do |fp|
@@ -269,50 +262,26 @@ namespace :assets do
 		end
 	end
 	
-	task :compile_react do
-		require 'babel/transpiler'
-		
-		build_manifest = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{|x| x+".js" }
-		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
-		
-		if build_manifest.length > 0 and not build_manifest.include? "main"
-			build_manifest.push(MAIN_FILE)
-		end
-		
-		react_to_compile = []
-		
-		build_manifest.each do |mod|
-			if not asset_manifest.has_key? mod
-				react_to_compile = Dir.glob("#{Rails.root}/app/assets/javascripts/**/*.jsx")
-				break
-			else
-				asset_manifest[mod].each do |requirement, hash|
-					react_to_compile.push("#{Rails.root}/#{requirement}") if requirement =~ /\.js.jsx$/
-				end
-			end
-		end
-		puts "Running task assets:compile_react"
-		react_to_compile.uniq.each do |react_file|
-			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/tmp/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
-			if not File.exists? File.dirname(new_file)
-				FileUtils.mkdir_p "#{File.dirname(new_file)}"
-			end
-			File.open(new_file, 'w') do |fp|
-				fp.write Babel::Transpiler.transform(File.read(react_file))['code'].gsub(/\\n/,"\n").gsub(/\\t/,"\t")
-			end
-		end
-	end
-	
 	# Run r.js on the clean copy of our assets directory:
 	task :run_r_js do
+		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
 		puts "Running task assets:run_r_js"
-		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
-		FileUtils.cp(Rails.application.assets.find_asset("require.js").filename, "#{OUTPUT_DIR}")
+		if built_modules.length > 0
+			system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
+		end
+		if Dir.glob("#{Rails.root}require-*.js").length == 0
+			FileUtils.mkdir_p "#{OUTPUT_DIR}"
+			if Rails.env != "production"
+				FileUtils.cp(Rails.application.assets.find_asset("require.js").filename, "#{OUTPUT_DIR}")
+			else
+				File.open("#{OUTPUT_DIR}/require.js","w"){|fp| fp.write Uglifier.compile(Rails.application.assets.find_asset("require.js").to_s)}
+			end
+		end
 	end
 	
 	task :handle_citeproc do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
-		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") }
+		build_dependencies = {}; if File.exists? "#{OUTPUT_DIR}/build.txt" then File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") } end
 		
 		deleted_modules = []
 		
@@ -331,7 +300,7 @@ namespace :assets do
 
 	task :make_build_manifest do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
-		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.split(/\n/)[1..-1] }
+		build_dependencies = {}; if File.exists? "#{OUTPUT_DIR}/build.txt" then File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.split(/\n/)[1..-1] }end
 		build_manifest = Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").length == 0 ? {} : JSON.parse(File.read(Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").first))
 		
 		built_modules.each do |built_module|
@@ -373,8 +342,8 @@ namespace :assets do
 		end
 		
 		Dir.glob("#{OUTPUT_DIR}/**/*").select{ |d| File.directory? d}.sort{ |a,b| b.count('/') <=> a.count('/') }.each{ |d| Dir.rmdir(d) if (Dir.entries(d) - %w[.. .]).empty?}
-		FileUtils.rm_r("#{OUTPUT_DIR}/ui")
-		FileUtils.rm("#{OUTPUT_DIR}/build.txt")
+		FileUtils.rm_r("#{OUTPUT_DIR}/ui") if File.exists? "#{OUTPUT_DIR}/ui" 
+		FileUtils.rm("#{OUTPUT_DIR}/build.txt") if File.exists? "#{OUTPUT_DIR}/build.txt" 
 	end
 	
 	task :generate_css do
@@ -398,10 +367,14 @@ namespace :assets do
 		end
 	end
 	task :write_manifest do
-		manifest = {
-			"assets" => {},
-			"files" => {}
-		}
+		if Dir.glob("#{Rails.root}/public/assets/.sprockets-manifest*.json").length > 0
+			manifest = JSON.parse(File.read(Dir.glob("#{Rails.root}/public/assets/.sprockets-manifest*.json").first))
+		else
+			manifest = {
+				"assets" => {},
+				"files" => {}
+			}
+		end
 		Dir.glob("#{OUTPUT_DIR}/**/*.*").each do |file|
 			current_file = file.sub("#{OUTPUT_DIR}/","")
 			current_file_manifest_entry = {
