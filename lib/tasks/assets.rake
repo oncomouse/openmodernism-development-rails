@@ -4,7 +4,7 @@ namespace :assets do
 	require 'erubis'
 	require 'json'
 
-	OUTPUT_DIR = "#{Rails.root}/public"
+	OUTPUT_DIR = "#{Rails.root}/tmp/build"
 
 	module Rake
 
@@ -42,18 +42,22 @@ namespace :assets do
 	end
 	
 	task :pack => [
+		"assets:environment",
 		"assets:make_app_build_js",
 		"assets:clean_copy",
 		"assets:run_r_js",
 		"assets:generate_polyfill",
-		#"assets:uglify",
 		"assets:clean_output_dir",
-		"assets:fake_assets",
-		"assets:mark_for_deletion",
-		"assets:precompile.old",
-		"assets:restore_assets",
-		"assets:delete_old_assets",
-		"assets:write_manifest"
+		"assets:generate_css",
+		"assets:uglify",
+		"assets:write_manifest",
+		"assets:produce_assets"
+		#"assets:fake_assets",
+		#"assets:mark_for_deletion",
+		#"assets:precompile.old",
+		#"assets:restore_assets",
+		#"assets:delete_old_assets",
+		#"assets:write_manifest"
 	] 
 	
 	task :distribute => ["assets:pack"] do
@@ -89,25 +93,25 @@ namespace :assets do
 	# Run r.js on the clean copy of our assets directory:
 	task :run_r_js do
 		puts "Running task assets:run_r_js"
-		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/assets-clean_copy/main.js")
-		if Dir.glob("#{Rails.root}/public/assets/require*.js").length == 0
-			FileUtils.cp("#{Rails.root}/vendor/assets/requirejs/require.js", "#{Rails.root}/public/assets/javascripts/")
-		end
+		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/main.js")
+		FileUtils.cp(Rails.application.assets.find_asset("require.js").filename, "#{OUTPUT_DIR}")
 		
-		FileUtils.rm_r "#{Rails.root}/assets-clean_copy"
+		FileUtils.rm_r "#{Rails.root}/tmp/assets-clean_copy"
 		FileUtils.rm "#{Rails.root}/app.build.js"
 	end
 
 	task :clean_output_dir do
 		puts "Running assets:clean_output_dir"
-		files = ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
-		files += JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
-		(Dir.glob("#{OUTPUT_DIR}/assets/javascripts/**/*.js")).each do |file|
+		files = ["#{OUTPUT_DIR}/require.js", "#{OUTPUT_DIR}/polyfill.js"]
+		files += JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/#{x}.js"}
+		(Dir.glob("#{OUTPUT_DIR}/**/*.js")).each do |file|
 			next if files.include? file
 			File.delete(file)
 		end
 		
-		Dir.glob("#{OUTPUT_DIR}/assets/**/*").select{ |d| File.directory? d}.sort{ |a,b| b.count('/') <=> a.count('/') }.each{ |d| Dir.rmdir(d) if (Dir.entries(d) - %w[.. .]).empty?}
+		Dir.glob("#{OUTPUT_DIR}/**/*").select{ |d| File.directory? d}.sort{ |a,b| b.count('/') <=> a.count('/') }.each{ |d| Dir.rmdir(d) if (Dir.entries(d) - %w[.. .]).empty?}
+		FileUtils.rm_r("#{OUTPUT_DIR}/ui")
+		FileUtils.rm("#{OUTPUT_DIR}/build.txt")
 	end
 	
 	def javascript_path(file)
@@ -197,8 +201,8 @@ namespace :assets do
 				config['modules'].push(mod_def)
 				
 				if has_citeproc
-					FileUtils.mkdir_p File.dirname("#{Rails.root}/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js")
-					FileUtils.touch "#{Rails.root}/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js"
+					FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js")
+					FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js"
 					mod_def = {
 						'name' => route_file + "_wo_citeproc",
 						'exclude' => [
@@ -226,9 +230,9 @@ namespace :assets do
 			fp.write(JSON.pretty_generate(built_modules))
 		end
 		
-		config['appDir'] = "#{Rails.root}/assets-clean_copy"
+		config['appDir'] = "#{Rails.root}/tmp/assets-clean_copy"
 		config['baseUrl'] = 'assets'
-		config['dir'] = "#{Rails.root}/public/assets/javascripts"
+		config['dir'] = "#{OUTPUT_DIR}"
 		config['skipDirOptimize'] = true
 		config['optimize'] = 'none'
 		
@@ -261,29 +265,12 @@ namespace :assets do
 		end
 		puts "Running task assets:compile_react"
 		react_to_compile.uniq.each do |react_file|
-			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
+			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/tmp/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
 			if not File.exists? File.dirname(new_file)
 				FileUtils.mkdir_p "#{File.dirname(new_file)}"
 			end
 			File.open(new_file, 'w') do |fp|
 				fp.write Babel::Transpiler.transform(File.read(react_file))['code'].gsub(/\\n/,"\n").gsub(/\\t/,"\t")
-			end
-		end
-	end
-
-	task :uglify do
-		require 'uglifier'
-	
-		puts "Running task assets:uglify"
-		
-		files = ["#{OUTPUT_DIR}/assets/javascripts/require.js", "#{OUTPUT_DIR}/assets/javascripts/polyfill.js"]
-		files += JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/assets/javascripts/#{x}.js"}
-		files.each do |file|
-			next if not File.exists? file
-			puts "Uglifying #{file}"
-			compressed_source = Uglifier.new(output: { comments: :copyright }).compile(File.read(file))
-			File.open(file, 'w') do |f_pointer|
-				f_pointer.write(compressed_source)#.gsub(/\/\*.*?\*\//m,""))
 			end
 		end
 	end
@@ -296,8 +283,8 @@ namespace :assets do
 				'/vendor/assets/css3-mediaqueries-js/css3-mediaqueries.js',
 				'/vendor/assets/html5shiv/dist/html5shiv.js'
 			]
-			FileUtils.mkdir_p "#{Rails.root}/public/assets/javascripts/"
-			File.open("#{Rails.root}/public/assets/javascripts/polyfill.js", 'w') do |poly_fp|
+			FileUtils.mkdir_p "#{OUTPUT_DIR}/"
+			File.open("#{OUTPUT_DIR}/polyfill.js", 'w') do |poly_fp|
 				polyfill.each do |p|
 					poly_fp.write(IO.read "#{Rails.root}/#{p}")
 				end
@@ -311,7 +298,7 @@ namespace :assets do
 		puts "Running task assets:clean_copy"
 	
 		# Create our copy:
-		FileUtils.mkdir_p("#{Rails.root}/assets-clean_copy/")
+		FileUtils.mkdir_p("#{Rails.root}/tmp/assets-clean_copy/")
 	
 		# Read in the r.js build script:
 		requirejs_config = JSON.parse(IO.read("#{Rails.root}/app.build.js").gsub(/^\(/,"").gsub(/\)$/,"").gsub(/\'/,"\""))
@@ -334,117 +321,76 @@ namespace :assets do
 					end
 				end
 				if File.exists? "#{dir}/#{file}"# and not File.directory? "#{dir}/#{file}"
-					FileUtils.mkdir_p("#{Rails.root}/assets-clean_copy/" + File.dirname(file))
-					FileUtils.cp_r(dir + "/" + file, "#{Rails.root}/assets-clean_copy/" + File.dirname(file))
+					FileUtils.mkdir_p("#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file))
+					FileUtils.cp_r(dir + "/" + file, "#{Rails.root}/tmp/assets-clean_copy/" + File.dirname(file))
 				end
 			end
 		end
 
-		File.open("#{Rails.root}/assets-clean_copy/main.js", 'w') do |fp|
+		File.open("#{Rails.root}/tmp/assets-clean_copy/main.js", 'w') do |fp|
 			fp.write Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding())
 		end
 	end
-	task :fake_assets do
-		FileUtils.mv("#{Rails.root}/app/assets/javascripts", "#{Rails.root}/app/javascripts.assets.proper")
-		FileUtils.mv("#{Rails.root}/vendor/assets", "#{Rails.root}/vendor/assets.proper")
-		FileUtils.mkdir("#{Rails.root}/app/assets/javascripts")
-		if(Dir.glob("#{Rails.root}/public/assets/build*.txt").length > 0)
-			Dir.glob("#{Rails.root}/public/assets/build*.txt").each do |f|
-				File.delete f
+	task :generate_css do
+		FileUtils.mkdir_p "#{OUTPUT_DIR}/"
+		Dir.glob("app/assets/stylesheets/**/[^_]*.scss") do |file|
+			file = file.sub("app/assets/stylesheets/","").sub(/\.css.*$/,".css").sub(/\.scss$/,".css")
+			File.open("#{OUTPUT_DIR}/#{file}","w") do |fp|
+				fp.write Rails.application.assets.find_asset(file).to_s
 			end
 		end
-		FileUtils.cp_r("#{Rails.root}/public/assets/javascripts", "#{Rails.root}/app/assets/")
-		FileUtils.rm_r("#{Rails.root}/public/assets/javascripts")
-				
-		(!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json")).each do |asset,requirements|
-			if asset =~ /\.js$/
-				asset_dir_in_question = "#{Rails.root}/app/assets/javascripts"
-				asset_extension_in_question = "js"
-			else
-				next
+	end
+	task :uglify do
+		puts "Running task assets:uglify"
+		Dir.glob("#{OUTPUT_DIR}/**/*.js").each do |file|	
+			next if not File.exists? file
+			puts "Uglifying #{file}"
+			compressed_source = Uglifier.new(output: { comments: :copyright }).compile(File.read(file))
+			File.open(file, 'w') do |f_pointer|
+				f_pointer.write(compressed_source)#.gsub(/\/\*.*?\*\//m,""))
 			end
-			
-			if not File.exists? "#{asset_dir_in_question}/#{asset}"
-				FileUtils.mkdir_p(File.dirname("#{asset_dir_in_question}/#{asset}"))
-				content = File.read(Dir.glob("#{Rails.root}/public/assets/#{asset.sub(/\.(js|css)$/,"")}*.#{asset_extension_in_question}").first).sub(/\*\/\n+/,"*/\n")
-				File.open("#{asset_dir_in_question}/#{asset}", "w") do |fp|
-					fp.write content
-				end
-			end
-		end
-		
-	end
-	task :mark_for_deletion do
-		build_manifest = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
-		files_to_delete = []
-		build_manifest.each do |mod|
-			files_to_delete += Dir.glob("#{Rails.root}/public/assets/#{mod}-*.js")
-		end
-		File.open("#{Rails.root}/tmp/delete-manifest.json","w") do |fp|
-			fp.write JSON.pretty_generate(files_to_delete)
-		end
-	end
-	task :restore_assets do
-		FileUtils.rm_r("#{Rails.root}/app/assets/javascripts")
-		FileUtils.mv("#{Rails.root}/app/javascripts.assets.proper", "#{Rails.root}/app/assets/javascripts")
-		FileUtils.mv("#{Rails.root}/vendor/assets.proper", "#{Rails.root}/vendor/assets")
-	end
-	task :delete_old_assets do
-		files_to_delete = JSON.parse(File.read("#{Rails.root}/tmp/delete-manifest.json"))
-		File.delete("#{Rails.root}/tmp/delete-manifest.json")
-		files_to_delete.each do |file|
-			File.delete(file)
 		end
 	end
 	task :write_manifest do
-		require 'digest/md5'
-		
-#		manifest = {:files => {}, :assets => {}}
-#
-#		Dir.glob("#{Rails.root}/public/assets/**/*.*").each do |file|
-#			next if file =~ /manifest.json$/
-#			mtime = File.mtime(file).to_s
-#			size = File.size(file)
-#			file.gsub!("#{Rails.root}/public/assets/","")
-#			basename = file[0..file.rindex("-")-1] + file[file.rindex(".")..-1]
-#			manifest[:files][file] = {
-#				:logical_path => basename,
-#				:digest => file.match(/-([a-f0-9]+)\.[a-z0-9]+$/)[1],
-#				:mtime => mtime,
-#				:size => size
-#			}
-#			manifest[:assets][basename] = file
-#		end
-		File.open("#{Rails.root}/public/assets/manifest.json", "w") do |fp|
-			fp.write File.read(Dir.glob("#{Rails.root}/public/assets/.sprocket*.json").first)
-		end
-
-		asset_dirs = Dir.glob("vendor/assets/*") + ["#{Rails.root}/app/assets/javascripts"]
-
-		tmp_manifest = {}
-		if Dir.glob("#{Rails.root}/public/assets/build*.txt").length > 0
-			build = File.read(Dir.glob("#{Rails.root}/public/assets/build*.txt").first).sub(/^\n/,"").split(/\n\n/).map{ |mod| (target, requirements) = mod.split("\n----------------\n"); tmp_manifest[target] = requirements.split("\n")}
-		end
-
-		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
-
-		asset_manifest.each do |m,v|
-			asset_manifest[m].delete_if{ |file,v| (not File.exists? "#{Rails.root}/#{file}") }
-		end
-
-		tmp_manifest.each { |file, mod| 
-			asset_manifest[file] = {} if not asset_manifest.has_key? file
-	
-			mod.each{|f|
-				actual_f = asset_dirs.map{ |d| if File.exists?("#{d}/#{f}") then "#{d}/#{f}" elsif File.exists?("#{d}/#{f}.erb") then "#{d}/#{f}.erb" elsif File.exists?("#{d}/#{f}.jsx") then "#{d}/#{f}.jsx" else nil end}.delete_if{|x| x.nil?}.first
-				next if actual_f.nil? or not File.exists? actual_f
-				actual_f.sub!(Rails.root.to_s+"/","")
-				asset_manifest[file][actual_f] = Digest::MD5.hexdigest(File.read("#{Rails.root}/#{actual_f}"))
-			}
+		manifest = {
+			"assets" => {},
+			"files" => {}
 		}
+		Dir.glob("#{OUTPUT_DIR}/**/*.*").each do |file|
+			current_file = file.sub("#{OUTPUT_DIR}/","")
+			current_file_manifest_entry = {
+				"logical_path" => current_file,
+				"mtime" => File.mtime(file).to_s,
+				"size" => File.size(file).to_i,
+				"digest" => Digest::SHA2.hexdigest(File.read(file)).to_s
+			}
+			current_file_manifest_entry["integrity"] = "sha256-#{[[current_file_manifest_entry["digest"]].pack("H*")].pack("m0")}"
+			manifest["assets"][current_file] = current_file.sub(/\.(\w+)$/) { |ext| "-#{current_file_manifest_entry["digest"]}#{ext}" }
+			manifest["files"][manifest["assets"][current_file]] = current_file_manifest_entry
+		end
+		File.open("#{OUTPUT_DIR}/manifest.json","w"){ |m| m.write(JSON.generate(manifest))}
+	end
+	task :produce_assets do
+		manifest = JSON.parse(File.read("#{OUTPUT_DIR}/manifest.json"))
+		Dir.glob("#{OUTPUT_DIR}/**/*.*").each do |file|
+			next if File.basename(file) == "manifest.json"
+			extension = file.match(/\.(\w+)$/)[1]
+			name = file.sub(".#{extension}","")
+			existing_asset_files = Dir.glob("#{Rails.root}/public/assets/#{name}-*.#{extension}").map do |f|
+				return f if f == "#{Rails.root}/public/assets/#{name}-#{manifest['files'][manifest['assets'][file.sub($output_directory,"")]]['digest']}.#{extension}"
+				File.delete f
+				return nil
+			end.delete_if{|x| x.nil? }
+			next if existing_asset_files.length > 0
+			FileUtils.mkdir_p(File.dirname("#{Rails.root}/public/assets/#{name.sub("#{OUTPUT_DIR}/","")}"))
+			File.open("#{Rails.root}/public/assets/#{name.sub("#{OUTPUT_DIR}/","")}-#{manifest['files'][manifest['assets'][file.sub("#{OUTPUT_DIR}/","")]]['digest']}.#{extension}", "w") do |fp|
+				fp.write(File.read(file))
+			end	
+		end
 		
-		File.open("#{Rails.root}/asset-manifest.json", "w") { |fp| fp.write(JSON.pretty_generate(asset_manifest)) }
-		File.delete(Dir.glob("#{Rails.root}/public/assets/build*.txt").first) if Dir.glob("#{Rails.root}/public/assets/build*.txt").length > 0
-		File.delete("#{Rails.root}/tmp/build-manifest.json")
+		FileUtils.cp("#{OUTPUT_DIR}/manifest.json", "#{Rails.root}/public/assets/")
+		Dir.glob("#{Rails.root}/public/assets/.sprockets-manifest*").each { |m| File.delete(m) }
+		FileUtils.cp("#{OUTPUT_DIR}/manifest.json", "#{Rails.root}/public/assets/.sprockets-manifest-#{SecureRandom.hex(16)}.json")
+		FileUtils.rm_r(OUTPUT_DIR)
 	end
 end
