@@ -49,7 +49,7 @@ namespace :assets do
 		"assets:clean_copy",
 		"assets:run_r_js",
 		"assets:make_build_manifest",
-		#"assets:handle_citeproc",
+		"assets:handle_citeproc",
 		"assets:generate_polyfill",
 		"assets:clean_output_dir",
 		"assets:generate_css",
@@ -96,7 +96,7 @@ namespace :assets do
 	
 		built_modules = []
 		
-		manifest = Dir.glob("#{OUTPUT_DIR}/.build-manifest-*.json").length > 0 ? JSON.parse(File.read(Dir.glob("#{OUTPUT_DIR}/.build-manifest-*.json").first)) : {}
+		manifest = Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").length > 0 ? JSON.parse(File.read(Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").first)) : {}
 		config["modules"] = []
 		
 		build_mod = false
@@ -156,9 +156,66 @@ namespace :assets do
 			
 		end
 
+		# Do W/O Citeproc compilation:
+		# The best way to handle this, in a fresh environemnt (ie. not having to build twice), is to compile all the routes with citeproc and then remove the ones later (in :handle_citeproc) that correspond to routes that didn't have citeproc.
+		#
+		# This is inefficient but seems the best way to build dependencies w/o already knowing them in advance.
+		built_modules.each do |built_module|
+			next if built_module =~ /wo_citeproc/ or built_module == (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")
+			if not manifest.has_key? built_module
+				FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js")
+				FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js"
+				mod_def = {
+					'name' => built_module + "_wo_citeproc",
+					'include' => [
+						built_module
+					]
+				}
+		
+				if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
+					mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
+				else
+					mod_def['exclude'] = []
+				end
+	
+				mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
+				if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
+					mod_def['include'].push("components/sidebar/#{built_module}")
+				end
+				config['modules'].push(mod_def)
+				built_modules.push(built_module + "_wo_citeproc")
+			else
+				manifest[built_module].each do |file, hash|
+					if file =~ /citeproc/
+						FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js")
+						FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js"
+						mod_def = {
+							'name' => built_module + "_wo_citeproc",
+							'include' => [
+								built_module
+							]
+						}
+		
+						if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
+							mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
+						else
+							mod_def['exclude'] = []
+						end
+	
+						mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
+						if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
+							mod_def['include'].push("components/sidebar/#{built_module}")
+						end
+						config['modules'].push(mod_def)
+						built_modules.push(built_module + "_wo_citeproc")
+					end
+				end
+			end
+		end
+
 		FileUtils.mkdir_p("#{Rails.root}/tmp/")
 		File.open("#{Rails.root}/tmp/build-manifest.json", "w") do |fp|
-			fp.write(JSON.pretty_generate(built_modules))
+			fp.write(JSON.pretty_generate(built_modules.uniq))
 		end
 		
 		config['appDir'] = "#{Rails.root}/tmp/assets-clean_copy"
@@ -166,6 +223,7 @@ namespace :assets do
 		config['dir'] = "#{OUTPUT_DIR}"
 		config['skipDirOptimize'] = true
 		config['optimize'] = 'none'
+		config['modules'] = config['modules'].uniq
 		
 		File.open("#{Rails.root}/app.build.js", 'w') do |json_fp|
 			json_fp.write(JSON.pretty_generate(config))
@@ -254,40 +312,17 @@ namespace :assets do
 	
 	task :handle_citeproc do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
-		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies }
-		wo_citeproc_modules = []
-		app_build = JSON.parse(File.read("#{Rails.root}/app.build.js"))
+		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") }
 		
 		built_modules.each do |built_module|
-			if build_dependencies[built_module] =~ /citeproc/
-				FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js")
-				FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js"
-				mod_def = {
-					'name' => built_module + "_wo_citeproc",
-					'include' => [
-						built_module
-					]
-				}
-				
-				if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
-					mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
-				end
-			
-				mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
-				if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
-					mod_def['include'].push("components/sidebar/#{built_module}")
-				end
-				wo_citeproc_modules.push(mod_def)
-				built_modules.push(built_module + "_wo_citeproc")
+			next if not built_module.include? "_wo_citeproc"
+			if not build_dependencies[built_module.sub("_wo_citeproc","")].include? "citeproc"
+				FileUtils.rm "#{OUTPUT_DIR}/#{built_module}.js"
+				built_modules.delete("#{built_module}")
 			end
 		end
-		if wo_citeproc_modules.length > 0
-			app_build['modules'] = wo_citeproc_modules
-			File.open("#{Rails.root}/app.build.js","w") { |fp| fp.write JSON.generate(app_build)}
-			system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
-		end
 		
-		File.open("#{Rails.root}/tmp/build-manifest.json", "w"){ |fp| fp.write(JSON.pretty_generate(built_modules)) }
+		File.open("#{Rails.root}/tmp/build-manifest.json", "w"){ |fp| fp.write(JSON.generate(built_modules)) }
 	end
 
 	task :make_build_manifest do
@@ -389,6 +424,7 @@ namespace :assets do
 				return nil
 			end.delete_if{|x| x.nil? }
 			next if existing_asset_files.length > 0
+			next if File.basename(file) == "build-manifest.json"
 			FileUtils.mkdir_p(File.dirname("#{Rails.root}/public/assets/#{name.sub("#{OUTPUT_DIR}/","")}"))
 			File.open("#{Rails.root}/public/assets/#{name.sub("#{OUTPUT_DIR}/","")}-#{manifest['files'][manifest['assets'][file.sub("#{OUTPUT_DIR}/","")]]['digest']}.#{extension}", "w") do |fp|
 				fp.write(File.read(file))
