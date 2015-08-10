@@ -10,31 +10,30 @@ class SessionsController < Devise::SessionsController
 	def new
 		self.resource = resource_class.new(sign_in_params)
 		clean_up_passwords(resource)
-		respond_with(resource, serialize_options(resource))
+		render json: nil
 	end
 
 	def create
+		resource = resource_from_credentials
+		return invalid_login_attempt unless resource
 
+		if resource.valid_password?(params[:user][:password])
+			render :json => { email: resource.email, :auth_token => resource.authentication_token , success: true }
+		else
+			invalid_login_attempt
+		end
 		respond_to do |format|
 			format.html {
 				super
 			}
 			format.json {
 
-				resource = resource_from_credentials
-				return invalid_login_attempt unless resource
 
-				if resource.valid_password?(params[:user][:password])
-					render :json => { email: resource.email, :auth_token => resource.authentication_token , success: true }
-				else
-					invalid_login_attempt
-				end
 			}
 		end
 	end
 
 	def destroy
-		
 		(Devise.sign_out_all_scopes ? sign_out : sign_out(resource_name))
 		respond_to do |format|
 			format.html {

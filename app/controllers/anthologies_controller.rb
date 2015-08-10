@@ -1,10 +1,21 @@
 class AnthologiesController < ApplicationController
 	skip_before_filter :verify_authenticity_token
+	before_filter :authenticate_user!, :except => [:view]
+	
+	clear_respond_to
+	respond_to :json
+	
+	before_filter :response_format
+	
+	def response_format
+		request.format = :json
+	end
+	
 	def index
 		if params[:no_preload]
-			models = Anthology.all
+			models = Anthology.find(:user_id => current_user.id).to_json
 		else
-			models = Anthology.preload(:documents).to_json(:include => [:documents])
+			models = Anthology.preload(:documents).find(:user_id => current_user.id).to_json(:include => [:documents])
 		end
 		render json: models
 	end
