@@ -5,6 +5,8 @@ namespace :assets do
 	require 'json'
 
 	OUTPUT_DIR = "#{Rails.root}/tmp/build"
+	
+	MAIN_FILE = "main.js"
 
 	module Rake
 
@@ -46,18 +48,14 @@ namespace :assets do
 		"assets:make_app_build_js",
 		"assets:clean_copy",
 		"assets:run_r_js",
+		"assets:make_build_manifest",
+		#"assets:handle_citeproc",
 		"assets:generate_polyfill",
 		"assets:clean_output_dir",
 		"assets:generate_css",
 		"assets:uglify",
 		"assets:write_manifest",
 		"assets:produce_assets"
-		#"assets:fake_assets",
-		#"assets:mark_for_deletion",
-		#"assets:precompile.old",
-		#"assets:restore_assets",
-		#"assets:delete_old_assets",
-		#"assets:write_manifest"
 	] 
 	
 	task :distribute => ["assets:pack"] do
@@ -71,7 +69,7 @@ namespace :assets do
 		FileUtils.mkdir_p "#{Rails.root}/dist/javascripts/"
 		
 		shim_manifest = {"assets"=>{}}
-		files = Dir.glob("#{Rails.root}/public/assets/main-*.js") + Dir.glob("#{Rails.root}/public/assets/require-*.js") + Dir.glob("#{Rails.root}/public/assets/routes/**/*.js")
+		files = Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}-*.js") + Dir.glob("#{Rails.root}/public/assets/require-*.js") + Dir.glob("#{Rails.root}/public/assets/routes/**/*.js")
 		files.each do |file|
 			out_file = "dist/javascripts/#{manifest["files"][file.sub("#{Rails.root}/public/assets/", "")]["logical_path"]}".sub(/\.js$/,".js")
 			FileUtils.mkdir_p File.dirname(out_file)
@@ -85,66 +83,28 @@ namespace :assets do
 		File.open("#{Rails.root}/dist/javascripts/app.js","w") do |fp|
 			fp.write(correct_main)
 		end
-		File.open("#{Rails.root}/dist/javascripts/main.js","w") do |fp|
-			fp.write(Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding()).sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.pretty_generate(shim_manifest)}; app.start();})")))
+		File.open("#{Rails.root}/dist/javascripts/#{MAIN_FILE}","w") do |fp|
+			fp.write(Rails.application.assets.find_asset(MAIN_FILE).to_s.sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.pretty_generate(shim_manifest)}; app.start();})")))
 		end
 	end
 	
-	# Run r.js on the clean copy of our assets directory:
-	task :run_r_js do
-		puts "Running task assets:run_r_js"
-		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/main.js")
-		FileUtils.cp(Rails.application.assets.find_asset("require.js").filename, "#{OUTPUT_DIR}")
-		
-		FileUtils.rm_r "#{Rails.root}/tmp/assets-clean_copy"
-		FileUtils.rm "#{Rails.root}/app.build.js"
+	def get_application_config
+		config = JSON.parse(Rails.application.assets.find_asset(MAIN_FILE).gsub(/-[a-f0-9]{64}(['"])/,'\1').gsub(/(['"])\/assets\//,'\1').to_s.gsub(/(\t|\n)/,'').split(/var requirejs_configuration\s*\=\s*/)[1].split(';')[0].gsub("'",'"').gsub(/([{,}])([A-Za-z0-9_]+)\:/,'\1"\2":'))
 	end
-
-	task :clean_output_dir do
-		puts "Running assets:clean_output_dir"
-		files = ["#{OUTPUT_DIR}/require.js", "#{OUTPUT_DIR}/polyfill.js"]
-		files += JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/#{x}.js"}
-		(Dir.glob("#{OUTPUT_DIR}/**/*.js")).each do |file|
-			next if files.include? file
-			File.delete(file)
-		end
-		
-		Dir.glob("#{OUTPUT_DIR}/**/*").select{ |d| File.directory? d}.sort{ |a,b| b.count('/') <=> a.count('/') }.each{ |d| Dir.rmdir(d) if (Dir.entries(d) - %w[.. .]).empty?}
-		FileUtils.rm_r("#{OUTPUT_DIR}/ui")
-		FileUtils.rm("#{OUTPUT_DIR}/build.txt")
-	end
-	
-	def javascript_path(file)
-		file.sub!(/\.js$/,"")
-		if File.exists? "#{Rails.root}/app/assets/javascripts/#{file}.js"
-			return file
-		else
-			Dir.glob("#{Rails.root}/vendor/assets/*").each do |package|
-				if File.exists? "#{package}/#{file}.js"
-					return "#{package}/#{file}".sub(Rails.root.to_s+"/","").gsub(/vendor\/assets\/[^\/]+\//,'')
-				end
-			end
-		end
-		
-		""
-	end
-	
 	task :make_app_build_js do
-		require 'digest/md5'
-		config = JSON.parse(Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding()).gsub(/(\t|\n)/,'').split('var requirejs_configuration = ')[1].split(';')[0].gsub("'",'"'))
+		config = JSON.parse(Rails.application.assets.find_asset(MAIN_FILE).to_s.gsub(/-[a-f0-9]{64}(['"])/,'\1').gsub(/(['"])\/assets\//,'\1').gsub(/(\t|\n)/,'').split(/var requirejs_configuration\s*\=\s*/)[1].split(';')[0].gsub("'",'"').gsub(/([{,}])([A-Za-z0-9_]+)\:/,'\1"\2":'))
 	
 		built_modules = []
 		
-		manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
-		
+		manifest = Dir.glob("#{OUTPUT_DIR}/.build-manifest-*.json").length > 0 ? JSON.parse(File.read(Dir.glob("#{OUTPUT_DIR}/.build-manifest-*.json").first)) : {}
 		config["modules"] = []
 		
 		build_mod = false
-		if manifest.has_key? "main.js"
-			if Dir.glob("#{Rails.root}/public/assets/main*.js").length == 0
+		if manifest.has_key? MAIN_FILE
+			if Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}*.js").length == 0
 				build_mod = true
 			else
-				manifest["main.js"].each{ |file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true end }
+				manifest[MAIN_FILE].each{ |file, hash| if (not File.exists? file) or (Digest::SHA2.hexdigest(File.read(file)) != hash) then build_mod = true end }
 			end
 		else
 			build_mod = true
@@ -172,25 +132,16 @@ namespace :assets do
 				if Dir.glob("#{Rails.root}/public/assets/#{route_file}*.js").length == 0
 					build_mod = true
 				else
-					manifest[route_file+".js"].each {|file, hash| if (not File.exists? file) or (Digest::MD5.hexdigest(File.read(file)) != hash) then build_mod = true; break end }
+					manifest[route_file+".js"].each {|file, hash| if (not File.exists? file) or (Digest::SHA2.hexdigest(File.read(file)) != hash) then build_mod = true; break end }
 				end
 			else
 				build_mod = true
 			end
 			
 			if build_mod
-				has_citeproc = false
-				if manifest.has_key? route_file+".js"
-					manifest[route_file+".js"].each do |file, hash|
-						if file =~ /citeproc/
-							has_citeproc = true
-							break
-						end
-					end
-				end
 				mod_def = {
 					'name' => route_file,
-					'exclude' => ['main']
+					'exclude' => [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
 				}
 				# Include the sidebar component in the build, if it exists:
 				if File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js.jsx" or File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js"
@@ -200,26 +151,6 @@ namespace :assets do
 				end
 				config['modules'].push(mod_def)
 				
-				if has_citeproc
-					FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js")
-					FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{route_file.sub(/\.js$/,"")}_wo_citeproc.js"
-					mod_def = {
-						'name' => route_file + "_wo_citeproc",
-						'exclude' => [
-							'main'
-						],
-						'include' => [
-							route_file
-						]
-					}
-					
-					mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
-					if File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js.jsx" or File.exists? "#{Rails.root}/app/assets/javascripts/components/sidebar/#{route_file}.js"
-						mod_def['include'].push("components/sidebar/#{route_file}")
-					end
-					config['modules'].push(mod_def)
-					built_modules.push(route_file + "_wo_citeproc")
-				end
 				built_modules.push(route_file)
 			end
 			
@@ -241,58 +172,6 @@ namespace :assets do
 		end
 	end
 
-	task :compile_react do
-		require 'babel/transpiler'
-		
-		build_manifest = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{|x| x+".js" }
-		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
-		
-		if build_manifest.length > 0 and not build_manifest.include? "main"
-			build_manifest.push("main.js")
-		end
-		
-		react_to_compile = []
-		
-		build_manifest.each do |mod|
-			if not asset_manifest.has_key? mod
-				react_to_compile = Dir.glob("#{Rails.root}/app/assets/javascripts/**/*.jsx")
-				break
-			else
-				asset_manifest[mod].each do |requirement, hash|
-					react_to_compile.push("#{Rails.root}/#{requirement}") if requirement =~ /\.js.jsx$/
-				end
-			end
-		end
-		puts "Running task assets:compile_react"
-		react_to_compile.uniq.each do |react_file|
-			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/tmp/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
-			if not File.exists? File.dirname(new_file)
-				FileUtils.mkdir_p "#{File.dirname(new_file)}"
-			end
-			File.open(new_file, 'w') do |fp|
-				fp.write Babel::Transpiler.transform(File.read(react_file))['code'].gsub(/\\n/,"\n").gsub(/\\t/,"\t")
-			end
-		end
-	end
-
-	task :generate_polyfill do
-		if Dir.glob("#{Rails.root}/public/assets/polyfill-*.js").length == 0
-			puts "Running task assets:generate_polyfill"
-			polyfill = [
-				'/vendor/assets/respond/dest/respond.src.js',
-				'/vendor/assets/css3-mediaqueries-js/css3-mediaqueries.js',
-				'/vendor/assets/html5shiv/dist/html5shiv.js'
-			]
-			FileUtils.mkdir_p "#{OUTPUT_DIR}/"
-			File.open("#{OUTPUT_DIR}/polyfill.js", 'w') do |poly_fp|
-				polyfill.each do |p|
-					poly_fp.write(IO.read "#{Rails.root}/#{p}")
-				end
-			end
-		end
-	end
-
-	# Create a copy of the assets directory that only uses the vendor packages we are actually deploying and the JS files we need:
 	task :clean_copy do
 	
 		puts "Running task assets:clean_copy"
@@ -327,10 +206,138 @@ namespace :assets do
 			end
 		end
 
-		File.open("#{Rails.root}/tmp/assets-clean_copy/main.js", 'w') do |fp|
-			fp.write Erubis::Eruby.new(File.read("#{Rails.root}/app/assets/javascripts/main.js.erb")).result(binding())
+		File.open("#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}", 'w') do |fp|
+			fp.write Rails.application.assets.find_asset(MAIN_FILE).to_s.gsub(/-[a-f0-9]{64}(['"])/,'\1').gsub(/(['"])\/assets\//,'\1')
 		end
 	end
+	
+	task :compile_react do
+		require 'babel/transpiler'
+		
+		build_manifest = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{|x| x+".js" }
+		asset_manifest = (!File.exists? "#{Rails.root}/asset-manifest.json") ? {} : JSON.parse(File.read("#{Rails.root}/asset-manifest.json"))
+		
+		if build_manifest.length > 0 and not build_manifest.include? "main"
+			build_manifest.push(MAIN_FILE)
+		end
+		
+		react_to_compile = []
+		
+		build_manifest.each do |mod|
+			if not asset_manifest.has_key? mod
+				react_to_compile = Dir.glob("#{Rails.root}/app/assets/javascripts/**/*.jsx")
+				break
+			else
+				asset_manifest[mod].each do |requirement, hash|
+					react_to_compile.push("#{Rails.root}/#{requirement}") if requirement =~ /\.js.jsx$/
+				end
+			end
+		end
+		puts "Running task assets:compile_react"
+		react_to_compile.uniq.each do |react_file|
+			new_file = react_file.gsub("#{Rails.root}/app/assets/javascripts/", "#{Rails.root}/tmp/assets-clean_copy/").gsub(/\.js\.jsx$/,".js")
+			if not File.exists? File.dirname(new_file)
+				FileUtils.mkdir_p "#{File.dirname(new_file)}"
+			end
+			File.open(new_file, 'w') do |fp|
+				fp.write Babel::Transpiler.transform(File.read(react_file))['code'].gsub(/\\n/,"\n").gsub(/\\t/,"\t")
+			end
+		end
+	end
+	
+	# Run r.js on the clean copy of our assets directory:
+	task :run_r_js do
+		puts "Running task assets:run_r_js"
+		system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
+		FileUtils.cp(Rails.application.assets.find_asset("require.js").filename, "#{OUTPUT_DIR}")
+	end
+	
+	task :handle_citeproc do
+		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
+		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies }
+		wo_citeproc_modules = []
+		app_build = JSON.parse(File.read("#{Rails.root}/app.build.js"))
+		
+		built_modules.each do |built_module|
+			if build_dependencies[built_module] =~ /citeproc/
+				FileUtils.mkdir_p File.dirname("#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js")
+				FileUtils.touch "#{Rails.root}/tmp/assets-clean_copy/#{built_module}_wo_citeproc.js"
+				mod_def = {
+					'name' => built_module + "_wo_citeproc",
+					'include' => [
+						built_module
+					]
+				}
+				
+				if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
+					mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
+				end
+			
+				mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
+				if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
+					mod_def['include'].push("components/sidebar/#{built_module}")
+				end
+				wo_citeproc_modules.push(mod_def)
+				built_modules.push(built_module + "_wo_citeproc")
+			end
+		end
+		if wo_citeproc_modules.length > 0
+			app_build['modules'] = wo_citeproc_modules
+			File.open("#{Rails.root}/app.build.js","w") { |fp| fp.write JSON.generate(app_build)}
+			system("node #{Rails.root}/vendor/assets/r.js/dist/r.js -o #{Rails.root}/app.build.js baseUrl=tmp/assets-clean_copy/ appDir='' mainConfigFile=#{Rails.root}/tmp/assets-clean_copy/#{MAIN_FILE}")
+		end
+		
+		File.open("#{Rails.root}/tmp/build-manifest.json", "w"){ |fp| fp.write(JSON.pretty_generate(built_modules)) }
+	end
+
+	task :make_build_manifest do
+		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
+		build_dependencies = {}; File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.split(/\n/)[1..-1] }
+		build_manifest = Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").length == 0 ? {} : JSON.parse(File.read(Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").first))
+		
+		built_modules.each do |built_module|
+			build_manifest[built_module] = {}
+			build_dependencies[built_module].each do |dependency|
+				build_manifest[built_module][dependency] = Digest::SHA2.hexdigest(Rails.application.assets.find_asset(dependency).to_s)
+			end
+		end
+		Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").each{ |x| File.delete(x) }
+		File.open("#{OUTPUT_DIR}/build-manifest.json","w"){ |fp| fp.write JSON.generate(build_manifest) }
+		FileUtils.rm_r "#{Rails.root}/tmp/assets-clean_copy"
+		FileUtils.rm "#{Rails.root}/app.build.js"
+	end
+
+	task :generate_polyfill do
+		if Dir.glob("#{Rails.root}/public/assets/polyfill-*.js").length == 0
+			puts "Running task assets:generate_polyfill"
+			polyfill = [
+				'/vendor/assets/respond/dest/respond.src.js',
+				'/vendor/assets/css3-mediaqueries-js/css3-mediaqueries.js',
+				'/vendor/assets/html5shiv/dist/html5shiv.js'
+			]
+			FileUtils.mkdir_p "#{OUTPUT_DIR}/"
+			File.open("#{OUTPUT_DIR}/polyfill.js", 'w') do |poly_fp|
+				polyfill.each do |p|
+					poly_fp.write(IO.read "#{Rails.root}/#{p}")
+				end
+			end
+		end
+	end
+
+	task :clean_output_dir do
+		puts "Running assets:clean_output_dir"
+		files = ["#{OUTPUT_DIR}/require.js", "#{OUTPUT_DIR}/polyfill.js"]
+		files += JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json")).map{ |x| "#{OUTPUT_DIR}/#{x}.js"}
+		(Dir.glob("#{OUTPUT_DIR}/**/*.js")).each do |file|
+			next if files.include? file
+			File.delete(file)
+		end
+		
+		Dir.glob("#{OUTPUT_DIR}/**/*").select{ |d| File.directory? d}.sort{ |a,b| b.count('/') <=> a.count('/') }.each{ |d| Dir.rmdir(d) if (Dir.entries(d) - %w[.. .]).empty?}
+		FileUtils.rm_r("#{OUTPUT_DIR}/ui")
+		FileUtils.rm("#{OUTPUT_DIR}/build.txt")
+	end
+	
 	task :generate_css do
 		FileUtils.mkdir_p "#{OUTPUT_DIR}/"
 		Dir.glob("app/assets/stylesheets/**/[^_]*.scss") do |file|
@@ -387,6 +394,9 @@ namespace :assets do
 				fp.write(File.read(file))
 			end	
 		end
+		
+		
+		FileUtils.cp("#{OUTPUT_DIR}/build-manifest.json", "#{Rails.root}/public/assets/.build-manifest-#{SecureRandom.hex(16)}.json") if File.exists? "#{OUTPUT_DIR}/build-manifest.json"
 		
 		FileUtils.cp("#{OUTPUT_DIR}/manifest.json", "#{Rails.root}/public/assets/")
 		Dir.glob("#{Rails.root}/public/assets/.sprockets-manifest*").each { |m| File.delete(m) }
