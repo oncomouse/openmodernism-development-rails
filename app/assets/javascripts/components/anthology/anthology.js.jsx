@@ -5,6 +5,7 @@ define([
 	'postal',
 	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'mixins/login-dependent/LoginDependentMixin',
+	'mixins/protected-route/ProtectedRouteMixin',
 	'components/document/short_view',
 	'components/utilities/modal',
 	'jquery-ui/sortable',
@@ -16,35 +17,18 @@ define([
 	postal,
 	PublishComponentMountMixin,
 	LoginDependentMixin,
+	ProtectedRouteMixin,
 	DocumentShortView,
 	Modal
 ) {
 	var Anthology = React.createClass({
 		mixins: [
 			PublishComponentMountMixin,
-			LoginDependentMixin
+			LoginDependentMixin,
+			ProtectedRouteMixin
 		],
 		propTypes: {
 			model: function(props, propName, componentName) { return (_.has(props, propName) && typeof props[propName].get === 'function' && typeof props[propName].set === 'function'); } /* Best we can do to check that model is a Backbone Model */
-		},
-		getInitialState: function() {
-			this.channel['component'] = postal.channel('component');
-			this.channel['component'].subscribe('anthology:doneEditing', _.bind(this.doneEditing,this));
-			this.channel['login'].subscribe('change', _.bind(function(data, envelope){
-				this.channel['login'].request({
-					topic: 'can-user-edit?',
-					data: {
-						object_owner: this.props.model.get('user')
-					}
-				}).then(_.bind(function(data) {
-					if(data.user_can_edit) {
-						this.setState({authorized: true});
-					}
-				}, this));
-			}, this));
-			return {
-				authorized: false
-			};
 		},
 		reorder: function(toc) {
 			
@@ -54,24 +38,12 @@ define([
 				modal: this.refs.AnthologyModal.getDOMNode()
 			});
 		},
-		componentDidMount: function() {
-			this.channel['login'].request({
-				topic: 'can-user-edit?',
-				data: {
-					object_owner: this.props.model.get('user')
-				}
-			}).then(_.bind(function(data) {
-				if(data.user_can_edit) {
-					this.setState({authorized: true});
-				}
-			}, this));
-		},
 		saveChanges: function() {
 			var new_toc = _.map($('#AnthologyContent li a'), _.bind(function(document) {
 				return parseInt($(document).attr('data-id'));
 			}, this));
 			
-			this.channel.component.publish('model-has-changed', { toc: new_toc });
+			this.channel.component.publish('model-has-changed', { toc: JSON.stringify(new_toc) });
 			
 			this.hideModal();
 		},
@@ -86,9 +58,7 @@ define([
 			});
 		},
 		render: function() {
-			console.log(this.props.model.get('documents'));
 			var renderedChildren = 	_.map(this.props.model.get('documents').models, function (element) {
-				console.log(element);
 				return (<DocumentShortView model={element} key={JSON.stringify(element)}/>);
 			});
 			return(
@@ -99,7 +69,7 @@ define([
 							<h2 id="anthology-author" dangerouslySetInnerHTML={{ __html: 'by ' + this.props.model.get('user')['email'] }} />
 						</hgroup>
 						<p className="text-center" id="AnthologyEditContainer">
-							<AnthologyEditButton model={this.props.model} authorized={this.state.authorized} ref="AnthologyEditButton"/>
+							<AnthologyEditButton model={this.props.model} authorized={this.authorizedForRoute()} ref="AnthologyEditButton"/>
 						</p>
 						<ul id="AnthologyContent" className="list-group">
 							{renderedChildren}
