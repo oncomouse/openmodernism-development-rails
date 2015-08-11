@@ -139,6 +139,22 @@ body.loaded {
 	}
 }
 
+form.create-anthology {
+	input[type=text], input[type=password] {
+		@extend .form-control;
+	}
+	input[type=submit], input[type=button] {
+		@extend .btn, .btn-primary
+	}
+	& > div {
+		@extend .form-group;
+	}
+	& > div:last-child {
+		@extend .form-group-submit, .text-right;
+	}
+	
+}
+
 .state-loading {
 	padding: {
 		bottom: 30vh;
