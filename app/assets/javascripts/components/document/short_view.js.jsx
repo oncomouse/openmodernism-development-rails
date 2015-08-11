@@ -9,7 +9,7 @@ define([
 		render: function() {
 			return(
 				<li>
-					<a href={ '#/document/' + this.props.model.id } dangerouslySetInnerHTML={{ __html: this.props.model.get('metadata').to_s() }} />
+					<a href={ '#/document/' + this.props.model.id } data-id={this.props.model.id} dangerouslySetInnerHTML={{ __html: this.props.model.get('metadata').to_s() }} />
 				</li>
 			);
 		}

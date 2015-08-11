@@ -30,8 +30,9 @@ define([
 			this.channel = {};
 			this.channel.subscriptions = {};
 			this.channel['route'] = postal.channel('route');
+			this.channel['login'] = postal.channel('login');
+			this.channel['component'] = postal.channel('component');
 			
-			this.original_sync = true;
 			this.channel.subscriptions['route:ready'] = this.channel['route'].subscribe('ready', _.bind(function(data, envelope) {
 				// Override Backbone.sync to send our API headers. This is the major work of the LoginManager:
 				Backbone.original_sync = Backbone.sync;
@@ -46,11 +47,8 @@ define([
 				
 					return Backbone.original_sync(method, model, options);
 				};
-				this.original_sync = false;
 				postal.unsubscribe(this.channel.subscriptions['route:ready']);
 			}, this));
-			
-			
 			
 			window.session_user = {};
 			if(this.getCookie('API-USER') != "not_logged_in") {
@@ -58,6 +56,7 @@ define([
 				window.session_user['authentication_token'] = decodeURIComponent(this.getCookie('API-TOKEN'));
 			}
 			
+			// Mount React Components:
 			React.render(
 				React.createElement(LoginLinkComponent),
 				$('nav .collapse ul.navbar-right').get(0)
@@ -68,14 +67,33 @@ define([
 				$('#LoginModal').get(0)
 			);
 			
-			this.channel['login'] = postal.channel('login');
-			this.channel['component'] = postal.channel('component');
-			
-			// Handle form submission (which is passed through jquery-ujs)
-			$('#LoginModal form').on('ajax:success', _.bind(this.login_form_submission, this));
+			// Handle form submission
+			$('#LoginModal form').on('ajax:success', _.bind(this.login_form_submission_success, this));
 			$('#LoginModal form').on('ajax:error', _.bind(this.login_form_submission_error, this));
 			
-			this.channel['login'].subscribe('submit', _.bind(function(data, envelope) {
+			this.channel['login'].subscribe('submit', _.bind(this.postal_subscription_responders.login, this));
+			this.channel['login'].subscribe('authenticated?', _.bind(this.postal_subscription_responders.is_authenticated, this));
+			this.channel['login'].subscribe('can-user-edit?', _.bind(this.postal_subscription_responders.can_user_edit, this))
+			this.channel['login'].subscribe('logout-request', _.bind(this.postal_subscription_responders.logout_request, this));
+			
+			this.authenticate();
+			
+		},
+		postal_subscription_responders: {
+			is_authenticated: function(data, envelope) {
+				console.log("Responding to authenticated?");
+				envelope.reply(null, this.login_postal_message());
+			},
+			can_user_edit: function(data, envelope) {
+				console.log(data.object_owner['email'] == this.current_user());
+				envelope.reply(null, {
+					user_can_edit: data.object_owner['email'] == this.current_user()
+				});
+			},
+			logout_request: function(data, envelope) {
+				this.logout();
+			},
+			login: function(data, envelope) {
 				var ev = data.event;
 				var form = $(ev.target);
 				
@@ -99,29 +117,24 @@ define([
 					form.trigger('ajax:errors', [xhr,	status, data]);
 				});
 				
-			}, this));
-			
-			this.channel['login'].subscribe('authenticated?', _.bind(function(data,envelope) {
-				envelope.reply(null, {authenticated: this.authenticated()})
-			}, this));
-			
-			this.channel['login'].subscribe('logout-request', _.bind(this.logout, this));
-			
-			this.authenticate();
-			
+			}
+		},
+		login_postal_message: function () {
+			return {loginStatus: this.authenticated(), loginUser: this.current_user()}
 		},
 		authenticate: function() {
-			this.channel['login'].publish('change', {loginStatus: _.has(window.session_user, 'email')});
+			this.channel['login'].publish('change', this.login_postal_message());
 		},
 		authenticated: function() {
 			return _.has(window.session_user, 'email');
 		},
-		login_form_submission: function(ev, data){
+		current_user: function() {
+			return this.authenticated() ? window.session_user['email'] : null;
+		},
+		login_form_submission_success: function(ev, data){
 			ev.stopPropagation();
 			if ($(ev.target).attr('id') == 'LoginForm' || $(ev.target).attr('id') == 'CreateAccountForm') {
-				this.channel['login'].publish('change', {
-					loginStatus: true
-				});
+				this.channel['login'].publish('change', this.login_postal_message());
 				window.session_user['email'] = data['email'];
 				window.session_user['authentication_token'] = data['authentication_token'];
 				AlertManager.show_alert({
@@ -158,9 +171,7 @@ define([
 				dataType: 'json'
 			}).done(_.bind(function(data) {
 				window.session_user = {};
-				this.channel['login'].publish('change', {
-					loginStatus: false
-				});
+				this.channel['login'].publish('change', this.login_postal_message());
 			}, this));
 		},
 		getCookie: function(name) {

@@ -27,16 +27,17 @@ define([
 			}
 			this.channel['login'].subscribe('change', _.bind(function(data, envelope) {
 				if (this.isMounted()){
-					this.setState({loginStatus: data.loginStatus});
+					this.setState({loginStatus: data.loginStatus, loginUser: data.loginUser});
 				}
 			}, this));
 			return {
-				loginStatus: false
+				loginStatus: false,
+				loginUser: null
 			}
 		},
 		componentDidMount: function() {
 			this.channel['login'].request({topic: 'authenticated?'}).then(_.bind(function(data) {
-				this.setState({loginStatus: data.authenticated});
+				this.setState({loginStatus: data.loginStatus});
 			}, this));
 		},
 	};

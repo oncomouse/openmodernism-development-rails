@@ -30,6 +30,15 @@ ul#DocumentsView {
 	float: none;
 }
 
+#AnthologyContent {
+	@extend .list-group;
+	li {
+		@extend .list-group-item;
+		font-size: $font-size-h3;
+		font-weight: $headings-font-weight;
+	}
+}
+
 .sidebar {
 	@extend .navbar, .navbar-default, .hidden-sm, .hidden-xs;
 	&.affix {
