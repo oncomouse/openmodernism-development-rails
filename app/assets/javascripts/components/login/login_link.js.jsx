@@ -23,12 +23,6 @@ define([
 			PublishComponentMountMixin,
 			LoginDependentMixin
 		],
-		/*mountComponent: function() {
-			React.render(
-				<LoginLink />,
-				$('nav .collapse ul.navbar-right').get(0)
-			);
-		},*/
 		clickLogin: function(ev) {
 			ev.stopPropagation();
 			ev.preventDefault();
@@ -40,19 +34,16 @@ define([
 			this.channel['login'].publish('logout-request',{});
 		},
 		render: function() {
-			var loginButton = <LoginButton onClick={this.clickLogin}/>;
-			var loginContent = <ul id="LoginButtons" className="nav navbar-nav navbar-right">{loginButton}</ul>;
-			if(this.state.loginStatus) {
-				loginButton = <LogoutButton onClick={this.clickLogout}/>;
-				loginContent = <ul id="LoginButtons" className="nav navbar-nav navbar-right">
-					<li><a href="#/anthologies/">Anthology Dashboard</a></li>
-					{loginButton}
+			return (
+				<ul id="LoginButtons" className="nav navbar-nav navbar-right">
+					<DashboardLink loginStatus={this.state.loginStatus} />
+					<LoginButton onClick={this.state.loginStatus ? this.clickLogout : this.clickLogin}>
+						{this.state.loginStatus ? 'Logout' : 'Login'}
+					</LoginButton>
 				</ul>
-			}
-			return loginContent;
+			);
 		}
 	});
-	
 	
 	var LoginButton = React.createClass({
 		mixins: [
@@ -60,18 +51,18 @@ define([
 		],
 		render: function() {
 			return (
-				<li><a href="#" id="LoginLink" onClick={this.props.onClick}>Login</a></li>
+				<li><a href="#" id="LoginLink" onClick={this.props.onClick}>{this.props.children}</a></li>
 			)
 		}
 	});
 	
-	var LogoutButton = React.createClass({
+	var DashboardLink = React.createClass({
 		mixins: [
 			React.addons.PureRenderMixin,
 		],
 		render: function() {
 			return (
-				<li><a href="#" id="LoginLink" onClick={this.props.onClick}>Logout</a></li>
+				<li>{this.props.loginStatus ? <a href="#/anthologies/">Anthology Dashboard</a> : '' }</li>
 			)
 		}
 	})
