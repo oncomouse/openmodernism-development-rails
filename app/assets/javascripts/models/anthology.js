@@ -11,7 +11,7 @@ define([
 		defaults: {
 			title: '',
 			toc: '[]',
-			documents: '[]'
+			documents: []
 		},
 		set: function(key, val, options) {
 			var self = this,

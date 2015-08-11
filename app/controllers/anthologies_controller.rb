@@ -30,8 +30,10 @@ class AnthologiesController < ApplicationController
 	
 	def new
 		model = Anthology.new(permissable_parameters)
+		model.user_id = current_user.id
 		if model.save
-			render json: {success: true}.to_json, status: 202
+			#render json: {success: true}.to_json, status: 202
+			redirect_to action: 'view', id: model.id
 		else
 			render json: {success: false}.to_json, status: 400
 		end
