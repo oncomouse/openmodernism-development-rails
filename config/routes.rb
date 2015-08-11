@@ -11,12 +11,12 @@ Rails.application.routes.draw do
   
   get 'document' => 'documents#index'
   get 'document/:id' => 'documents#view'
-  post 'document/:id' => 'documents#new'
+  post 'document' => 'documents#new'
   put 'document/:id' => 'documents#save'
   
   get 'anthology' => 'anthologies#index'
   get 'anthology/:id' => 'anthologies#view'
-  post 'anthology/:id' => 'anthologies#new'
+  post 'anthology' => 'anthologies#new'
   put 'anthology/:id' => 'anthologies#save'  
 
   # Example of regular route:
