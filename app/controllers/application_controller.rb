@@ -4,10 +4,6 @@ class ApplicationController < ActionController::Base
 	protect_from_forgery with: :exception
 	protect_from_forgery with: :null_session, :if => Proc.new { |c| c.request.format == 'application/json'}
 	
-	before_filter :authenticate_user_from_token!
-	before_filter :authenticate_user!
-	
-	skip_before_filter :authenticate_user!, :only => [:index]
 	skip_before_filter :verify_authenticity_token
 	
 	after_filter :set_csrf_cookie
