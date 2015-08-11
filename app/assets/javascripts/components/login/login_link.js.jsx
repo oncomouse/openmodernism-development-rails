@@ -41,14 +41,15 @@ define([
 		},
 		render: function() {
 			var loginButton = <LoginButton onClick={this.clickLogin}/>;
+			var loginContent = <ul id="LoginButtons" className="nav navbar-nav navbar-right">{loginButton}</ul>;
 			if(this.state.loginStatus) {
 				loginButton = <LogoutButton onClick={this.clickLogout}/>;
-			}
-			return (
-				<ul id="LoginButtons" className="nav navbar-nav navbar-right">
+				loginContent = <ul id="LoginButtons" className="nav navbar-nav navbar-right">
+					<li><a href="#/anthologies/">Anthology Dashboard</a></li>
 					{loginButton}
 				</ul>
-			);
+			}
+			return loginContent;
 		}
 	});
 	
