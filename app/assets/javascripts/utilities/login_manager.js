@@ -132,9 +132,11 @@ define([
 		login_form_submission_success: function(ev, data){
 			ev.stopPropagation();
 			if ($(ev.target).attr('id') == 'LoginForm' || $(ev.target).attr('id') == 'CreateAccountForm') {
-				this.channel['login'].publish('change', this.login_postal_message());
 				window.session_user['email'] = data['email'];
 				window.session_user['authentication_token'] = data['authentication_token'];
+				
+				this.channel['login'].publish('change', this.login_postal_message());
+				
 				AlertManager.show_alert({
 					target: $(ev.target),
 					type: 'success',
