@@ -28,12 +28,11 @@ define([
 			'': 'documents', // SET THIS TO THE DEFAULT ROUTE
 			'documents': 'documents',
 			'document/:id': 'document',
-			'anthologies': 'anthologies',
 			'anthology/:id': 'anthology'
 		};
 		
 		app.protected_routes = {
-			
+			'anthologies': 'anthologies'
 		};
 
 		app.clearAppCanvas = function() {
