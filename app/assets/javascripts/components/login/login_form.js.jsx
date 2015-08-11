@@ -22,7 +22,6 @@ define([
 			}
 		},
 		handleSubmit: function(ev) {
-			ev.stopPropagation();
 			ev.preventDefault();
 	
 			this.channel['login'].publish('submit', {
