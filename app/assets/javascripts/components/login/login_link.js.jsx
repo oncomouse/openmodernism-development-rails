@@ -62,7 +62,7 @@ define([
 		],
 		render: function() {
 			return (
-				<li>{this.props.loginStatus ? <a href="#/anthologies/">Anthology Dashboard</a> : '' }</li>
+				<li>{this.props.loginStatus ? <a href="#/anthologies">Anthology Dashboard</a> : '' }</li>
 			)
 		}
 	})
