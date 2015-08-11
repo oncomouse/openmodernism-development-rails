@@ -6,9 +6,9 @@ define([
 	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'mixins/login-dependent/LoginDependentMixin',
 	'components/document/short_view',
+	'components/utilities/modal',
 	'jquery-ui/sortable',
-	'postal.request-response',
-	'bootstrap/modal'
+	'postal.request-response'
 ], function(
 	$,
 	_,
@@ -16,12 +16,12 @@ define([
 	postal,
 	PublishComponentMountMixin,
 	LoginDependentMixin,
-	DocumentShortView
+	DocumentShortView,
+	Modal
 ) {
 	var Anthology = React.createClass({
 		mixins: [
 			PublishComponentMountMixin,
-			React.addons.PureRenderMixin,
 			LoginDependentMixin
 		],
 		propTypes: {
@@ -29,7 +29,7 @@ define([
 		},
 		getInitialState: function() {
 			this.channel['component'] = postal.channel('component');
-			this.channel['component'].subscribe('anthology:done_editing', _.bind(this.done_editing,this));
+			this.channel['component'].subscribe('anthology:doneEditing', _.bind(this.doneEditing,this));
 			this.channel['login'].subscribe('change', _.bind(function(data, envelope){
 				this.channel['login'].request({
 					topic: 'can-user-edit?',
@@ -43,12 +43,16 @@ define([
 				}, this));
 			}, this));
 			return {
-				authorized: false,
-				toc: JSON.parse(this.props.model.get('toc'))
+				authorized: false
 			};
 		},
-		done_editing: function(data, envelope) {
+		reorder: function(toc) {
 			
+		},
+		doneEditing: function(data, envelope) {
+			this.channel.component.publish('modal:show', {
+				modal: this.refs.AnthologyModal.getDOMNode()
+			});
 		},
 		componentDidMount: function() {
 			this.channel['login'].request({
@@ -61,6 +65,25 @@ define([
 					this.setState({authorized: true});
 				}
 			}, this));
+		},
+		saveChanges: function() {
+			var new_toc = _.map($('#AnthologyContent li a'), _.bind(function(document) {
+				return parseInt($(document).attr('data-id'));
+			}, this));
+			
+			this.channel.component.publish('model-has-changed', { toc: new_toc });
+			
+			this.hideModal();
+		},
+		cancelChanges: function() {
+			this.reorder(JSON.parse(this.props.model.get('toc')));
+			
+			this.hideModal();
+		},
+		hideModal: function() {
+			this.channel.component.publish('modal:hide', {
+				modal: this.refs.AnthologyModal.getDOMNode()
+			});
 		},
 		render: function() {
 			console.log(this.props.model.get('documents'));
@@ -76,12 +99,19 @@ define([
 							<h2 id="anthology-author" dangerouslySetInnerHTML={{ __html: 'by ' + this.props.model.get('user')['email'] }} />
 						</hgroup>
 						<p className="text-center" id="AnthologyEditContainer">
-							<AnthologyEditButton model={this.props.model} authorized={this.state.authorized}/>
+							<AnthologyEditButton model={this.props.model} authorized={this.state.authorized} ref="AnthologyEditButton"/>
 						</p>
 						<ul id="AnthologyContent" className="list-group">
 							{renderedChildren}
 						</ul>
 					</section>
+					<Modal title="Save Changes?" ref="AnthologyModal" static={true}>
+						<h2>Would You Like to Save Changes?</h2>
+						<p className="text-center">
+							<button onClick={this.saveChanges} className='btn btn-primary btn-lg'>Yes</button>
+							<button onClick={this.cancelChanges}  className='btn btn-default btn-lg'>No</button>
+						</p>
+					</Modal>
 				</div>
 			);
 		}
@@ -101,13 +131,13 @@ define([
 			if($('#AnthologyEdit').html() == 'Done Editing') {
 				$('#AnthologyContent').sortable('disable');
 				$('#AnthologyEdit').html('Edit This Anthology');
+				this.channel['component'].publish('anthology:doneEditing', {});
 			} else {
 				$('#AnthologyContent').sortable({
 					disabled: false,
 					update: this.update_sortable
 				});
 				$('#AnthologyEdit').html('Done Editing');
-				this.channel['component'].publish('anthology:done_editing', {});
 			}
 		},
 		update_sortable: function() {
