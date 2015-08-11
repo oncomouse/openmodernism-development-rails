@@ -25,15 +25,30 @@ class AnthologiesController < ApplicationController
 		rescue
 			model = {}
 		end
-		render json: model
+		render json: model, status: model == {} ? 400 : 200
 	end
 	
-	def edit
-		begin
-			model = Anthology.find(params['id'], :user_id => current_user.id)
-		rescue
-			model = {}
+	def new
+		model = Anthology.new(permissable_parameters)
+		if model.save
+			render json: {success: true}.to_json, status: 202
+		else
+			render json: {success: false}.to_json, status: 400
 		end
-		render json: model
+	end
+	
+	def save
+		Rails.logger.debug(params)
+		model = Anthology.find(params['id'])
+		if model.update(permissable_parameters)
+			render json: {success: true}.to_json, status: 202
+		else
+			render json: {success: false}.to_json, status: 400
+		end
+	end
+	
+	private
+	def permissable_parameters
+		params.permit(:title, :toc)
 	end
 end
