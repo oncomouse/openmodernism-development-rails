@@ -59,7 +59,7 @@ define([
 			// Mount React Components:
 			React.render(
 				React.createElement(LoginLinkComponent),
-				$('nav .collapse ul.navbar-right').get(0)
+				$('#LoginButtonsContainer').get(0)
 			);
 			$('body').append($('<div id="LoginModal"></div>'));
 			React.render(

@@ -45,7 +45,9 @@ define([
 				loginButton = <LogoutButton onClick={this.clickLogout}/>;
 			}
 			return (
-				loginButton
+				<ul id="LoginButtons" className="nav navbar-nav navbar-right">
+					{loginButton}
+				</ul>
 			);
 		}
 	});
