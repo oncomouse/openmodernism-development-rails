@@ -2,12 +2,14 @@ define([
 	'lodash',
 	'react',
 	'mixins/publish-component-mount/PublishComponentMountMixin',
-	'components/sidebar/sidebar'
+	'components/sidebar/sidebar',
+	'components/sidebar/routes/anthologies'
 ], function(
 	_,
 	React,
 	PublishComponentMountMixin,
-	Sidebar
+	Sidebar,
+	SidebarAnthologies
 ) {
 	var Anthologies = React.createClass({
 		mixins: [
@@ -21,10 +23,12 @@ define([
 		render: function() {
 			return(
 				<div className="row">
-					<h1>List of Available Anthologies <span className="subtitle"></span></h1>
+					<h1>Your Anthologies: <span className="subtitle"></span></h1>
 
 					<AnthologyList collection={this.props.collection} />
-					<Sidebar attach={true} route="anthologies" />
+					<Sidebar attach={true} title="Anthologies List">
+						<SidebarAnthologies collection={this.props.collection} />
+					</Sidebar>
 				</div>
 			);
 		}
@@ -46,10 +50,17 @@ define([
 	});
 	
 	var AnthologyShortView = React.createClass({
+		editThisDocument: function(ev) {
+			ev.preventDefault();
+			var id = this.props.model.id;
+		},
 		render: function() {
 			return(
 				<li>
-					<a href={ '#/anthology/' + this.props.model.id } dangerouslySetInnerHTML={{ __html: this.props.model.get('metadata').to_s() }} />
+					<a href={ '#/anthology/' + this.props.model.id }>
+						{this.props.model.get('title')}
+					</a>
+					<small><a href="#" onClick={this.editThisDocument}>Add Documents</a></small>
 				</li>
 			);
 		}

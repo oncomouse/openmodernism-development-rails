@@ -6,11 +6,24 @@
 	display: inline;
 }
 
-ul#DocumentsView {
+#DocumentsView, #AnthologiesView {
 	list-style: none;
+}
+ul#DocumentsView {
 	li {
 		font-size: $font-size-h4;
 		margin-top: $font-size-h4;
+	}
+}
+#AnthologiesView {
+	li {
+		font-size: $font-size-h3;
+		margin-top: $font-size-h3;
+		small {
+			font-size: $font-size-h3 * .75;
+			float: right;
+			padding-top: 6px;
+		}
 	}
 }
 
@@ -40,11 +53,23 @@ ul#DocumentsView {
 }
 
 .sidebar {
-	@extend .navbar, .navbar-default, .hidden-sm, .hidden-xs;
+	@extend .panel, .panel-default, .hidden-sm, .hidden-xs;
 	&.affix {
 		z-index: 5000;
 		position: fixed !important;
 		top: 0;
+	}
+	.sidebar-body {
+		@extend .panel-body;
+	}
+	.sidebar-heading {
+		@extend .panel-heading;
+	}
+	.sidebar-body {
+		@extend .panel-body;
+	}
+	.sidebar-title {
+		@extend .panel-title;
 	}
 }
 
@@ -135,7 +160,7 @@ body.loaded {
 }
 
 // Sidebar sizes:
-body.documents .sidebar, body.anthologies .sidebar {
+body.documents #Sidebar, body.anthologies #Sidebar {
 	@include affix-sidebar(5);
 }
 

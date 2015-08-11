@@ -3,12 +3,14 @@ define([
 	'react',
 	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'components/sidebar/sidebar',
+	'components/sidebar/routes/documents',
 	'components/document/short_view'
 ], function(
 	_,
 	React,
 	PublishComponentMountMixin,
 	Sidebar,
+	SidebarDocuments,
 	DocumentShortView
 ) {
 	var Documents = React.createClass({
@@ -26,7 +28,9 @@ define([
 					<h1>List of Available Documents <span className="subtitle"></span></h1>
 
 					<DocumentList collection={this.props.collection} />
-					<Sidebar attach={true} route="documents" />
+					<Sidebar attach={true} title="Documents List">
+						<SidebarDocuments collection={this.props.collection} />
+					</Sidebar>
 				</div>
 			);
 		}
