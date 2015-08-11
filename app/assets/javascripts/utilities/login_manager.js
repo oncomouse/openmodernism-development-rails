@@ -81,11 +81,9 @@ define([
 		},
 		postal_subscription_responders: {
 			is_authenticated: function(data, envelope) {
-				console.log("Responding to authenticated?");
 				envelope.reply(null, this.login_postal_message());
 			},
 			can_user_edit: function(data, envelope) {
-				console.log(data.object_owner['email'] == this.current_user());
 				envelope.reply(null, {
 					user_can_edit: data.object_owner['email'] == this.current_user()
 				});

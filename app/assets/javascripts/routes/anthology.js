@@ -27,6 +27,7 @@ define([
 		currentAnthology = new Anthology({'id': id});
 		var options = (typeof app.documentList !== 'undefined') ? {data: { no_preload: true }} : {};
 		currentAnthology.fetch(options).then(function() {
+			console.log(currentAnthology.id);
 			var current_documents = new DocumentCollection;
 			var document_list = (typeof app.documentList !== 'undefined') ? JSON.parse(currentAnthology.get('toc')) : currentAnthology.get('documents');
 			_.each(document_list, function(document) {
