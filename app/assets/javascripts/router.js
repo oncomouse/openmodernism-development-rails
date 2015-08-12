@@ -34,11 +34,17 @@ define([
 			this.context = options.context;
 			
 			this.current_route = "";
+			this.current_route = {
+				route_name: null,
+				route_function: null,
+				route_params: null
+			}
 			
 			this.protected_routes = this.context.protected_routes;
 		
 			this.channel = {};
 			this.channel['route'] = postal.channel('route');
+			this.channel['login'] = postal.channel('login');
 			
 			this.channel['route'].subscribe('ready', _.bind(function(data, envelope) {
 				this.routeReady();
@@ -46,10 +52,26 @@ define([
 			
 			this.channel['route'].subscribe('route?', _.bind(function(data,envelope) {
 				envelope.reply(null, {
-					route: this.current_route,
-					protected: _.has(this.protected_routes, this.current_route)
+					route: this.current_route.route_name,
+					protected: _.has(this.protected_routes, this.current_route.route_name)
 				});
 			}, this));
+			
+			this.channel.route.subscribe('refire', _.bind(function(data, envelope) {
+				if (typeof this.current_route.route_function === 'function') {
+					this.current_route.route_function(this.context, this.current_route.route_params);
+				}
+			}, this));
+			
+			this.channel.login.subscribe('change', _.bind(function(data, envelope) {
+				if(_.has(this.protected_routes, this.current_route.route_name)) {
+					if (data.loginStatus) {
+						this.channel.route.publish('refire');
+					} else {
+						this.login_manager.show_login_page();
+					}
+				}
+			}, this))
 			
 			this.channel['route'].subscribe('change', _.bind(function(data, envelope) {
 				
@@ -58,7 +80,8 @@ define([
 				
 				$('body').attr('class','loaded').addClass(data.route);
 				
-				this.current_route = _.findLastKey(this.routes, function(route) { return route == data.route; });
+				this.current_route.route_name = _.findLastKey(this.routes, function(route) { return route == data.route; });
+				
 				
 				/*
 				This is not a good solution:
@@ -77,9 +100,8 @@ define([
 				
 				This is weird, but seems the best way to deal with Rail's weird cache-busting.
 				*/
-				
-				if(_.has(this.protected_routes, this.current_route) && ! this.login_manager.authenticated) {
-					this.login_manager.show_login_page({redirect: window.location.hash });
+				if(_.has(this.protected_routes, this.current_route.route_name) && !this.login_manager.authenticated()) {
+					this.login_manager.show_login_page();
 				} else {
 				
 					var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');
@@ -89,6 +111,8 @@ define([
 					require([route_file], _.bind(function() {
 						require(['routes/'+data.route], _.bind(function(route) {
 							route(this.context, data.params);
+							this.current_route.route_function = route;
+							this.current_route.route_params = data.params;
 						}, this));
 					}, this));
 				}
