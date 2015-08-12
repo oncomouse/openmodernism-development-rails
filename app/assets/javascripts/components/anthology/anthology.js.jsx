@@ -94,13 +94,17 @@ define([
 			if($('#AnthologyEdit').html() == 'Done Editing') {
 				$('#AnthologyContent').sortable('disable');
 				$('#AnthologyEdit').html('Edit This Anthology');
-				this.channel['component'].publish('anthology:doneEditing', {});
+				this.channel['component'].publish('anthology:done-editing', {});
 			} else {
 				$('#AnthologyContent').sortable({
 					disabled: false,
 					update: this.update_sortable
 				});
 				$('#AnthologyEdit').html('Done Editing');
+				this.channel.component.publish('anthology:edit', {
+					id: this.props.model.id,
+					contents: JSON.parse(this.props.model.get('toc'))
+				});
 			}
 		},
 		update_sortable: function() {
