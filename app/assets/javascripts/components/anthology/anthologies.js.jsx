@@ -44,9 +44,7 @@ define([
 		deleteAnthology: function(ev) {
 			ev.preventDefault();
 			
-			console.log(this.state.deleteModalID);
 			if(this.state.deleteModalID && typeof this.state.deleteModalID === 'number') {
-				console.log("DELETEING");
 				this.channel.component.publish('anthology:delete', { anthology_id: this.state.deleteModalID });
 				this.setState({deleteModalID: null });
 			}
@@ -110,7 +108,7 @@ define([
 						{this.props.model.get('title')}
 					</a>
 					<small><a href="#" onClick={this.editThisDocument}>Add Documents</a></small>
-					<small><a href="#" data-id={this.props.model.id} onClick={this.deleteThisDocument}>Delete Document</a></small>
+					<small><a href="#" data-id={this.props.model.id} onClick={this.deleteThisDocument}>Delete Anthology</a></small>
 				</li>
 			);
 		}
