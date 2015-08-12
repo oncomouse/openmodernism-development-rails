@@ -9,7 +9,8 @@ define([
 	'react',
 	'postal',
 	'bootstrap/transition',
-	'bootstrap/collapse'
+	'bootstrap/collapse',
+	'postal.request-response'
 ],function(
 	$,
 	_,
@@ -78,6 +79,12 @@ define([
 				id: null,
 				contents: null
 			}
+		});
+		postal.channel('component').subscribe('anthology:current-anthology?', function(data, envelope) {
+			envelope.reply(null, {
+				id: app.currentAnthology.id,
+				contents: app.currentAnthology.contents
+			})
 		});
 
 		$(document).ready(function() {

@@ -3,13 +3,14 @@ define([
 	'jquery',
 	'react',
 	'postal',
-	'mixins/login-dependent/LoginDependentMixin',
-	'postal.request-response'
+	'components/anthology/current_anthology',
+	'mixins/login-dependent/LoginDependentMixin'
 ], function(
 	_,
 	$,
 	React,
 	postal,
+	CurrentAnthology,
 	LoginDependentMixin
 ) {
 	var SidebarDocuments = React.createClass({
@@ -28,7 +29,7 @@ define([
 			var content;
 			if(this.state.loginStatus) {
 				content = (
-					<p>Logged In</p>
+					<CurrentAnthology />
 				);
 			} else {
 				content = (
