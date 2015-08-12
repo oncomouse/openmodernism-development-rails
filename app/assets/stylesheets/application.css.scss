@@ -19,10 +19,11 @@ ul#DocumentsView {
 	li {
 		font-size: $font-size-h3;
 		margin-top: $font-size-h3;
-		small {
-			font-size: $font-size-h3 * .75;
+		small{ 
 			float: right;
-			padding-top: 6px;
+			a {
+				@extend .btn, .btn-default, .btn-sm;
+			}
 		}
 	}
 }
