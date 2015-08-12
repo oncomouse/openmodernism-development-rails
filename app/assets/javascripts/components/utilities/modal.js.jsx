@@ -20,6 +20,16 @@ define([
 				children: undefined
 			}
 		},
+		showModal: function() {
+			this.channel.component.publish('modal:show', {
+				modal: this.getDOMNode()
+			});
+		},
+		hideModal: function() {
+			this.channel.component.publish('modal:hide', {
+				modal: this.getDOMNode()
+			});
+		},
 		componentDidMount: function() {
 			this.channel = {
 				'component': postal.channel('component')
