@@ -17,7 +17,7 @@
 
 }(function (Backbone, Anthology) {
 	var AnthologyCollection = Backbone.Collection.extend({
-		url: '/anthology',
+		url: '/anthologies',
 		model: Anthology,
 		initialize: function() {
 			this.listenTo(this, 'update', function() { this.trigger('reset') });

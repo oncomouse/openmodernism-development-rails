@@ -8,7 +8,7 @@ define([
 	'models/metadata'
 ], function (_,Backbone, Lorem, Metadata) {
 	var Document = Backbone.Model.extend({
-		urlRoot: '/document',
+		urlRoot: '/documents',
 		idAttribute: 'id',
 		defaults: {
 			metadata: ''

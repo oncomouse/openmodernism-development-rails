@@ -9,15 +9,19 @@ Rails.application.routes.draw do
   
   root 'application#index'
   
-  get 'document' => 'documents#index'
-  get 'document/:id' => 'documents#view'
-  post 'document' => 'documents#new'
-  put 'document/:id' => 'documents#save'
+  resources :documents, :anthologies
   
-  get 'anthology' => 'anthologies#index'
-  get 'anthology/:id' => 'anthologies#view'
-  post 'anthology' => 'anthologies#new'
-  put 'anthology/:id' => 'anthologies#save'  
+  #get 'document' => 'documents#index'
+  #get 'document/:id' => 'documents#view'
+  #post 'document' => 'documents#new'
+  #put 'document/:id' => 'documents#save'
+  #delete 'document/:id' => 'documents#destroy
+  
+#  get 'anthology' => 'anthologies#index'
+#  get 'anthology/:id' => 'anthologies#view'
+#  post 'anthology' => 'anthologies#new'
+#  put 'anthology/:id' => 'anthologies#save' 
+#  delete 'anthology/:id' => 'anthologies#destroy' 
 
   # Example of regular route:
   #   get 'products/:id' => 'catalog#view'

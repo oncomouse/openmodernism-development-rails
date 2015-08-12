@@ -17,7 +17,7 @@
 
 }(function (Backbone, Document) {
 	var DocumentCollection = Backbone.Collection.extend({
-		url: '/document',
+		url: '/documents',
 		model: Document,
 		initialize: function() {
 			this.listenTo(this, 'update', function() { this.trigger('reset') });

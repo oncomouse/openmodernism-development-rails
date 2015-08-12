@@ -6,7 +6,7 @@ define([
 	'jsyaml'
 ], function (_,Backbone,jsyaml) {
 	var Anthology = Backbone.Model.extend({
-		urlRoot: '/anthology',
+		urlRoot: '/anthologies',
 		idAttribute: 'id',
 		defaults: {
 			title: '',
