@@ -12,7 +12,7 @@ define([
 		
 		// Your code goes here:
 		
-		channel['route'].dispatch({actionType: 'route:ready' });
+		channel['route'].publish('ready');
 	}
 	return GenericRoute;
 });
