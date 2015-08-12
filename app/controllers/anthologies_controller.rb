@@ -15,7 +15,7 @@ class AnthologiesController < ApplicationController
 		render json: models
 	end
 	
-	def view
+	def show
 		begin
 			if params.has_key? :no_preload
 				model = Anthology.preload(:user).find(params['id']).to_json(:include => [:user => {:except=>:authentication_token}])
@@ -28,7 +28,7 @@ class AnthologiesController < ApplicationController
 		render json: model, status: model == {} ? 400 : 200
 	end
 	
-	def new
+	def create
 		model = Anthology.new(permissable_parameters)
 		model.user_id = current_user.id
 		if model.save
@@ -39,7 +39,7 @@ class AnthologiesController < ApplicationController
 		end
 	end
 	
-	def save
+	def update
 		model = Anthology.find(params['id'])
 		if model.update(permissable_parameters)
 			render json: {success: true}.to_json, status: 202

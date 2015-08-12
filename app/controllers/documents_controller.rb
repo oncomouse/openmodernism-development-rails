@@ -8,7 +8,7 @@ class DocumentsController < ApplicationController
 		render json: Document.preload(:authors, :citations, :document_files).to_json(:include => [:authors, :citations, :document_files])
 	end
 	
-	def view
+	def show
 		begin
 			model = Document.preload(:authors, :citations, :document_files).find(params['id'])
 		rescue
