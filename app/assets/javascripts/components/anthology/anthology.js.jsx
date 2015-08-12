@@ -34,9 +34,7 @@ define([
 			
 		},
 		doneEditing: function(data, envelope) {
-			this.channel.component.publish('modal:show', {
-				modal: this.refs.AnthologyModal.getDOMNode()
-			});
+			this.refs.AnthologyModal.showModal();
 		},
 		saveChanges: function() {
 			var new_toc = _.map($('#AnthologyContent li a'), _.bind(function(document) {
@@ -45,17 +43,12 @@ define([
 			
 			this.channel.component.publish('model-has-changed', { toc: JSON.stringify(new_toc) });
 			
-			this.hideModal();
+			this.refs.AnthologyModal.hideModal();
 		},
 		cancelChanges: function() {
 			this.reorder(JSON.parse(this.props.model.get('toc')));
 			
-			this.hideModal();
-		},
-		hideModal: function() {
-			this.channel.component.publish('modal:hide', {
-				modal: this.refs.AnthologyModal.getDOMNode()
-			});
+			this.refs.AnthologyModal.hideModal();
 		},
 		render: function() {
 			var renderedChildren = 	_.map(this.props.model.get('documents').models, function (element) {
