@@ -23,7 +23,8 @@ define([
 	FormValidation,
 	AlertManager,
 	LoginLinkComponent,
-	LoginModalComponent
+	LoginModalComponent,
+	LoginPageComponent
 ){
 	var LoginManager = Backbone.Model.extend({
 		initialize: function() {
@@ -66,10 +67,12 @@ define([
 				React.createElement(LoginModalComponent),
 				$('#LoginModal').get(0)
 			);
-			
-			// Handle form submission
-			$('#LoginModal form').on('ajax:success', _.bind(this.login_form_submission_success, this));
-			$('#LoginModal form').on('ajax:error', _.bind(this.login_form_submission_error, this));
+
+			this.channel.route.subscribe('ready', _.bind(function() {
+				// Handle form submission
+				$('.login-form form').on('ajax:success', _.bind(this.login_form_submission_success, this));
+				$('.login-form form').on('ajax:error', _.bind(this.login_form_submission_error, this));				
+			}, this));
 			
 			this.channel['login'].subscribe('submit', _.bind(this.postal_subscription_responders.login, this));
 			this.channel['login'].subscribe('authenticated?', _.bind(this.postal_subscription_responders.is_authenticated, this));
@@ -144,11 +147,8 @@ define([
 					message: 'Logged In Succesfully, Welcome Back!',
 					clear_callback: _.bind(function() { this.channel['login'].publish('submitted'); }, this)
 				});
-				if(window.session_redirect) {
-					window.location.hash = window.session_redirect;
-				} else {
-					// Figure out a default login route
-				}
+				
+				// Router handles redirect.
 			}
 		},
 		login_form_submission_error: function(ev, xhr,	status, error){
@@ -184,12 +184,11 @@ define([
 			}
 			return null;
 		},
-		show_login_page: function(options) {
-			options || (options = {});
-			
-			window.session_redirect = _.has(options,'redirect') ? options.redirect : null;
-			
-			React.render(React.createElement(LoginPage), $('#app').get(0));
+		show_login_page: function() {			
+			React.render(React.createElement(LoginPageComponent, {
+				message: "Unauthorized Route. Please Login To Continue."
+			}), $('#app').get(0));
+			this.channel['route'].publish('ready');
 		}
 	});
 	

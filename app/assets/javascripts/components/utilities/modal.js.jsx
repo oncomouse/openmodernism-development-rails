@@ -21,37 +21,17 @@ define([
 			}
 		},
 		showModal: function() {
-			this.channel.component.publish('modal:show', {
-				modal: this.getDOMNode()
-			});
+			$(this.getDOMNode()).modal('show')
 		},
 		hideModal: function() {
-			this.channel.component.publish('modal:hide', {
-				modal: this.getDOMNode()
-			});
+			$(this.getDOMNode()).modal('hide');
 		},
 		componentDidMount: function() {
-			this.channel = {
-				'component': postal.channel('component')
-			};
-			
-			this.channel.component.subscribe('modal:show', _.bind(function(data, envelope) {
-				if(data.modal === this.getDOMNode()) {
-					$(this.getDOMNode()).modal('show');
-				}
-			},this));
-			
-			this.channel.component.subscribe('modal:hide', _.bind(function(data, envelope) {
-				if(data.modal == React.findDOMNode(this)) {
-					$(React.findDOMNode(this)).modal('hide');
-				}
-			},this));
-			
-			$(React.findDOMNode(this)).on('hide.bs.modal', _.bind(function(ev) {
+			$(this.getDOMNode()).on('hide.bs.modal', _.bind(function(ev) {
 				ev.target = this.getDOMNode();
 				(typeof this.props.onHide === 'function') ? this.props.onHide.apply(ev) : false;
 			}, this));
-			$(React.findDOMNode(this)).on('show.bs.modal', _.bind(function(ev) {
+			$(this.getDOMNode()).on('show.bs.modal', _.bind(function(ev) {
 				ev.target = this.getDOMNode();
 				(typeof this.props.onShow === 'function') ? this.props.onShow.apply(ev) : false;
 			}, this));
