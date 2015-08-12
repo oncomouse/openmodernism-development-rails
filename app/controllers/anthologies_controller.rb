@@ -40,12 +40,21 @@ class AnthologiesController < ApplicationController
 	end
 	
 	def save
-		Rails.logger.debug(params)
 		model = Anthology.find(params['id'])
 		if model.update(permissable_parameters)
 			render json: {success: true}.to_json, status: 202
 		else
 			render json: {success: false}.to_json, status: 400
+		end
+	end
+	
+	def destroy
+		model = Anthology.find(params['id'])
+		begin
+			model.destroy
+			render json: {success: true}.to_json, status: 202
+		rescue Exception => e  
+			render json: {success: false, message: e.message}.to_json, status: 400
 		end
 	end
 	

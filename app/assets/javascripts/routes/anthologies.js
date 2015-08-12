@@ -19,6 +19,7 @@ define([
 ) {
 	var AnthologiesRoute = function(app) {
 		var fetch_collection = false;
+		var react_component = null;
 		
 		var channel = {};
 		channel.route = postal.channel('route');
@@ -30,11 +31,13 @@ define([
 		}
 		if(fetch_collection) {
 			app.anthologyList.fetch().then(function() { 
-				React.render(React.createElement(Anthologies, {collection: app.anthologyList}), $('#app').get(0));
+				react_component = React.createElement(Anthologies, {collection: app.anthologyList});
+				React.render(react_component, $('#app').get(0));
 				channel.route.publish('ready');
 			});
 		} else {
-			React.render(React.createElement(Anthologies, {collection: app.anthologyList}), $('#app').get(0));
+			react_component = React.createElement(Anthologies, {collection: app.anthologyList});
+			React.render(react_component, $('#app').get(0));
 			channel.route.publish('ready');
 		}
 		channel.component.subscribe('create:anthology', function(data, envelope) {
@@ -48,11 +51,17 @@ define([
 			anthology = new Anthology(anthology);
 			anthology.save().then(function() {
 				app.anthologyList.push(anthology);
-				React.render(React.createElement(Anthologies, {collection: app.anthologyList}), $('#app').get(0));
+				react_component._store.props.collection = app.anthologyList;
 			});
-			
-			
 		});
+		channel.component.subscribe('anthology:delete', function(data, envelope) {
+			var anthology = app.anthologyList.get(data.anthology_id);
+			anthology.destroy().then(function() {
+				app.anthologyList.remove(anthology);
+				react_component._store.props.collection = app.anthologyList;
+			})
+			
+		})
 	}
 	return AnthologiesRoute;
 });
