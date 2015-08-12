@@ -38,6 +38,47 @@ define([
 		app.clearAppCanvas = function() {
 			$('#app').html('');
 		}
+		
+		app.currentAnthology = {
+			id: null,
+			contents: null
+		}
+		postal.channel('login').subscribe('change', function(data, envelope) {
+			if(!data.loginStatus && _.has(app, 'anthologyList')) {
+				app.anthologyList = null;
+				app.currentAnthology = {
+					id: null,
+					contents: null
+				}
+			}
+			postal.channel('component').publish('anthology:logged-out');
+		});
+		postal.channel('component').subscribe('anthology:list', function(data, envelope) {
+			if(!_.has(app, 'anthologyList')) {
+				app.anthologyList = new AnthologyCollection();
+				app.anthologyList.fetch().then(function() {
+					envelope.reply(null, {
+						anthologyList: app.anthologyList
+					});
+				});
+			} else {
+				envelope.reply(null, {
+					anthologyList: app.anthologyList
+				});
+			}
+		});
+		postal.channel('component').subscribe('anthology:edit', function(data, envelope) {
+			app.currentAnthology = {
+				id: data.id,
+				contents: data.contents
+			}
+		});
+		postal.channel('component').subscribe('anthology:done-editing', function(data, envelope) {
+			app.currentAnthology = {
+				id: null,
+				contents: null
+			}
+		});
 
 		$(document).ready(function() {
 			// Generate the router:
