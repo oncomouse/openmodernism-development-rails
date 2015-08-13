@@ -8,6 +8,7 @@ define([
 	'router',
 	'react',
 	'postal',
+	'collections/anthology_collection',
 	'bootstrap/transition',
 	'bootstrap/collapse',
 	'postal.request-response'
@@ -18,7 +19,8 @@ define([
 	has,
 	Router,
 	React,
-	postal
+	postal,
+	AnthologyCollection
 ){
 	var start = function() {
 		var DEBUG = true;
