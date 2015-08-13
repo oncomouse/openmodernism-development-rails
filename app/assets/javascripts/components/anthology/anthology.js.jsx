@@ -27,6 +27,12 @@ define([
 			LoginDependentMixin,
 			ProtectedRouteMixin
 		],
+		componentDidMount: function() {
+			this.channel.component = postal.channel('component');
+			this.channel.component.subscribe('anthology:done-editing', _.bind(function(data, envelope) {
+				this.doneEditing();
+			}, this))
+		},
 		propTypes: {
 			model: function(props, propName, componentName) { return (_.has(props, propName) && typeof props[propName].get === 'function' && typeof props[propName].set === 'function'); } /* Best we can do to check that model is a Backbone Model */
 		},
