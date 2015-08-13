@@ -3,13 +3,15 @@ define([
 	'lodash',
 	'react',
 	'postal',
-	'mixins/login-dependent/LoginDependentMixin'
+	'mixins/login-dependent/LoginDependentMixin',
+	'components/anthology/current_anthology'
 ], function(
 	$,
 	_,
 	React,
 	postal,
-	LoginDependentMixin
+	LoginDependentMixin,
+	CurrentAnthology
 ) {
 	var SidebarAnthologies = React.createClass({
 		mixins: [
@@ -27,6 +29,7 @@ define([
 			return (
 				<div>
 					<CreateAnthologyForm />
+					<CurrentAnthology />
 				</div>
 			);
 		},
