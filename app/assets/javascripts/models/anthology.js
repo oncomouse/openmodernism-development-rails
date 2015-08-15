@@ -3,15 +3,74 @@
 define([
 	'lodash',
 	'backbone',
-	'jsyaml'
-], function (_,Backbone,jsyaml) {
+	'postal',
+	'jsyaml',
+	'models/document',
+	'collections/document_collection'
+], function (_,Backbone,postal,jsyaml, Document, DocumentCollection) {
 	var Anthology = Backbone.Model.extend({
 		urlRoot: '/anthologies',
 		idAttribute: 'id',
 		defaults: {
 			title: '',
 			toc: '[]',
-			documents: []
+			documents: [],
+			'_has_documents': false
+		},
+		initialize: function() {
+			/*var document_collection = new DocumentCollection;
+			if(this.attributes.documents.length == 0) {
+				var toc_internal = JSON.parse(this.attributes.toc);
+				_.each(toc_internal, function(n){ document_collection.push(new Document); }); // Make sure the document is the right length
+				_.each(toc_internal, function(document_id, i) {
+					console.log(document_id);
+					postal.channel('cache').request({topic: 'document?'}).then(function(data) {
+						if(typeof data.document === 'undefined') {
+							document = new Document({id: document_id});
+							document.fetch().then(function() {
+								document_collection.push(document);
+							});
+						} else {
+							document_collection.push(document);
+						}
+					});
+				});
+			} else {
+				_.each(this.attributes.documents, function(document, i) {
+					console.log(document);
+					document_collection.push(new Document(document));
+				});
+			}
+			this.attributes.documents = document_collection;*/
+		},
+		get: function(attr) {
+			var output = this.attributes[attr];
+			if(attr === 'documents' && !this.attributes['_has_documents']) {
+				output = new DocumentCollection;
+				if(this.attributes.documents.length == 0) {
+					var toc_internal = JSON.parse(this.attributes.toc);
+					_.each(toc_internal, function(n){ output.push(new Document); }); // Make sure the document is the right length
+					_.each(toc_internal, function(document_id, i) {
+						postal.channel('cache').request({topic: 'document?'}).then(function(data) {
+							if(typeof data.document === 'undefined') {
+								document = new Document({id: document_id});
+								document.fetch().then(function() {
+									output.push(document);
+								});
+							} else {
+								output.push(document);
+							}
+						});
+					});
+				} else {
+					_.each(this.attributes.documents, function(document, i) {
+						output.push(new Document(document));
+					});
+				}
+				this.attributes['_has_documents'] = true;
+				this.attributes.documents = output;
+			}
+			return output;
 		},
 		set: function(key, val, options) {
 			var self = this,
