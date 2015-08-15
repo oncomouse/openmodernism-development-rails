@@ -22,7 +22,7 @@ define([
 			var content;
 			if(this.state.loginStatus) {
 				content = (
-					<CurrentAnthology />
+					<CurrentAnthology sidebar={true}/>
 				);
 			} else {
 				content = (
