@@ -12,6 +12,8 @@ Rails.application.configure do
 	# application.js, application.css, and all non-JS/CSS in app/assets folder are already added.
 	# config.assets.precompile += %w( search.js )
 
+	config.assets.paths += Dir.glob("vendor/assets/*")
+	config.assets.paths.uniq!
 	
 	config.assets.precompile += config.assets.paths.map do |path|
 		Dir.glob("#{path}/**/*.js").map do |file|
