@@ -28,6 +28,15 @@ define([
 	LoginModalComponent,
 	LoginPageComponent
 ){
+	var User = Backbone.Model.extend({
+		idAttribute: 'id',
+		defaults: {
+			//id: 0,
+			email: null,
+			authentication_token: null
+		}
+	});
+	
 	var LoginManager = Backbone.Model.extend({
 		initialize: function() {
 			this.channel = {};
