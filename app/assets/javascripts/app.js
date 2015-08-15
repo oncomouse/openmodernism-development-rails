@@ -25,7 +25,7 @@ define([
 	AnthologyCollection
 ){
 	var start = function() {
-		var DEBUG = true;
+		var DEBUG = false;
 
 		var app = {};
 
