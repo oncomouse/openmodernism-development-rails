@@ -8,6 +8,7 @@ define([
 	'router',
 	'react',
 	'postal',
+	'models/anthology',
 	'collections/anthology_collection',
 	'bootstrap/transition',
 	'bootstrap/collapse',
@@ -20,6 +21,7 @@ define([
 	Router,
 	React,
 	postal,
+	Anthology,
 	AnthologyCollection
 ){
 	var start = function() {
@@ -82,20 +84,14 @@ define([
 			}
 		});
 		postal.channel('component').subscribe('anthology:edit', function(data, envelope) {
-			app.currentAnthology = {
+			app.currentAnthology = new Anthology({
 				id: data.id
-			}
-			var contents = undefined;
-			if(typeof app.anthonologyList === 'undefined') {
-				contents = app.anthologyList.get(id);
-			} else {
-				contents = new Anthology({id: id});
-				contents.fetch().then(function() {
-					postal.channel('component').publish('anthology:edit-contents', {
-						contents: contents.documents
-					});
+			});
+			app.currentAnthology.fetch().then(function() {
+				postal.channel('component').publish('anthology:edit-contents', {
+					contents: app.currentAnthology.get('documents')
 				});
-			}
+			});
 		});
 		postal.channel('component').subscribe('anthology:done-editing', function(data, envelope) {
 			app.currentAnthology = {
