@@ -36,13 +36,9 @@ define([
 	
 	var LoginManager = Backbone.Model.extend({
 		initialize: function() {
-			this.channel = {};
-			this.channel.subscriptions = {};
-			this.channel['route'] = postal.channel('route');
-			this.channel['login'] = postal.channel('login');
-			this.channel['component'] = postal.channel('component');
+			var postal_subscriptions = {};
 			
-			this.channel.subscriptions['route:ready'] = this.channel['route'].subscribe('ready', _.bind(function(data, envelope) {
+			postal_subscriptions['route:ready'] = postal.channel('route').subscribe('ready', _.bind(function(data, envelope) {
 				// Override Backbone.sync to send our API headers. This is the major work of the LoginManager:
 				Backbone.original_sync = Backbone.sync;
 				Backbone.sync = function(method, model, options) {
@@ -56,7 +52,7 @@ define([
 				
 					return Backbone.original_sync(method, model, options);
 				};
-				postal.unsubscribe(this.channel.subscriptions['route:ready']);
+				postal.unsubscribe(postal_subscriptions['route:ready']);
 			}, this));
 			
 			window.session_user = new User;
@@ -76,16 +72,16 @@ define([
 				$('#LoginModal').get(0)
 			);
 
-			this.channel.route.subscribe('ready', _.bind(function() {
+			postal.channel('route').subscribe('ready', _.bind(function() {
 				// Handle form submission
 				$('.login-form form').on('ajax:success', _.bind(this.login_form_submission_success, this));
 				$('.login-form form').on('ajax:error', _.bind(this.login_form_submission_error, this));				
 			}, this));
 			
-			this.channel['login'].subscribe('submit', _.bind(this.postal_subscription_responders.login, this));
-			this.channel['login'].subscribe('authenticated?', _.bind(this.postal_subscription_responders.is_authenticated, this));
-			this.channel['login'].subscribe('can-user-edit?', _.bind(this.postal_subscription_responders.can_user_edit, this))
-			this.channel['login'].subscribe('logout-request', _.bind(this.postal_subscription_responders.logout_request, this));
+			postal.channel('login').subscribe('submit', _.bind(this.postal_subscription_responders.login, this));
+			postal.channel('login').subscribe('authenticated?', _.bind(this.postal_subscription_responders.is_authenticated, this));
+			postal.channel('login').subscribe('can-user-edit?', _.bind(this.postal_subscription_responders.can_user_edit, this))
+			postal.channel('login').subscribe('logout-request', _.bind(this.postal_subscription_responders.logout_request, this));
 			
 			this.authenticate();
 			
@@ -132,7 +128,7 @@ define([
 			return {loginStatus: this.authenticated(), loginUser: this.current_user()}
 		},
 		authenticate: function() {
-			this.channel['login'].publish('change', this.login_postal_message());
+			postal.channel('login').publish('change', this.login_postal_message());
 		},
 		authenticated: function() {
 			return typeof window.session_user.get('email') !== 'undefined';
@@ -145,14 +141,14 @@ define([
 			if ($(ev.target).attr('id') == 'LoginForm' || $(ev.target).attr('id') == 'CreateAccountForm') {
 				window.session_user = new User({email: data['email'], authentication_token: data['authentication_token']});
 				
-				this.channel['login'].publish('change', this.login_postal_message());
+				postal.channel('login').publish('change', this.login_postal_message());
 				
 				AlertManager.show_alert({
 					target: $(ev.target),
 					type: 'success',
 					timeout: 300,
 					message: 'Logged In Succesfully, Welcome Back!',
-					clear_callback: _.bind(function() { this.channel['login'].publish('submitted'); }, this)
+					clear_callback: _.bind(function() { postal.channel('login').publish('submitted'); }, this)
 				});
 				
 				// Router handles redirect.
@@ -165,7 +161,7 @@ define([
 				type: 'danger',
 				timeout: null,
 				message: 'XHR Error: ' + error,
-				clear_callback: _.bind(function() { this.channel['login'].publish('submitted'); }, this)
+				clear_callback: _.bind(function() { postal.channel('login').publish('submitted'); }, this)
 			});
 		},
 		logout: function() {
@@ -178,7 +174,7 @@ define([
 				dataType: 'json'
 			}).done(_.bind(function(data) {
 				window.session_user = new User();
-				this.channel['login'].publish('change', this.login_postal_message());
+				postal.channel('login').publish('change', this.login_postal_message());
 			}, this));
 		},
 		getCookie: function(name) {
@@ -195,7 +191,7 @@ define([
 			React.render(React.createElement(LoginPageComponent, {
 				message: "Unauthorized Route. Please Login To Continue."
 			}), $('#app').get(0));
-			this.channel['route'].publish('ready');
+			postal.channel('route').publish('ready');
 		}
 	});
 	

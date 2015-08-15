@@ -18,13 +18,6 @@ define([
 			React.addons.PureRenderMixin,
 			LoginDependentMixin
 		],
-		getInitialState: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['component'] = postal.channel('component');
-			return null;
-		},
 		render: function() {
 			var content;
 			if(this.state.loginStatus) {

@@ -20,14 +20,6 @@ define([
 				message: ''
 			};
 		},
-		componentWillMount: function() {
-			if(typeof this.channel === 'undefined') {
-				this.channel = {}
-			}
-			if(!_.has(this.channel, 'route')) {
-				this.channel.route = postal.channel('route');
-			}
-		},
 		componentDidMount: function() {
 			AlertManager.show_alert({
 				type: 'danger',

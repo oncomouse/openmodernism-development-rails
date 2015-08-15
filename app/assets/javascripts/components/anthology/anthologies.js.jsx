@@ -2,7 +2,6 @@ define([
 	'lodash',
 	'react',
 	'postal',
-	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'components/sidebar/sidebar',
 	'components/sidebar/routes/anthologies',
 	'components/utilities/modal'
@@ -10,15 +9,11 @@ define([
 	_,
 	React,
 	postal,
-	PublishComponentMountMixin,
 	Sidebar,
 	SidebarAnthologies,
 	Modal
 ) {
 	var Anthologies = React.createClass({
-		mixins: [
-			PublishComponentMountMixin
-		],
 		getPropDefaults: function() {
 			return {
 				collection: []
@@ -30,13 +25,7 @@ define([
 			}
 		},
 		componentDidMount: function() {
-			if(typeof this.channel === 'undefined') {
-				this.channel = {}
-			}
-			if(_.has(this.channel, 'component')) {
-				this.channel.component = postal.channel('component');
-			}
-			this.channel.component.subscribe('confirm-delete-modal', _.bind(function(data, envelope) {
+			postal.channel('component').subscribe('confirm-delete-modal', _.bind(function(data, envelope) {
 				this.setState({deleteModalID: data.id });
 				this.refs.ConfirmDeleteModal.showModal();
 			},this));
@@ -45,7 +34,7 @@ define([
 			ev.preventDefault();
 			
 			if(this.state.deleteModalID && typeof this.state.deleteModalID === 'number') {
-				this.channel.component.publish('anthology:delete', { anthology_id: this.state.deleteModalID });
+				postal.channel('component').publish('anthology:delete', { anthology_id: this.state.deleteModalID });
 				this.setState({deleteModalID: null });
 			}
 			this.refs.ConfirmDeleteModal.hideModal();
@@ -66,7 +55,7 @@ define([
 					</Sidebar>
 					<Modal title="Are You Sure?" static={true} ref="ConfirmDeleteModal">
 						<h2>Delete This Anthology?</h2>
-						<p class="text-center">
+						<p className="text-center">
 							<button onClick={this.deleteAnthology} className='btn btn-primary btn-lg'>Yes</button>
 							<button onClick={this.cancelDeleteAnthology}  className='btn btn-default btn-lg'>No</button>
 						</p>

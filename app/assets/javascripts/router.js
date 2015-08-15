@@ -41,39 +41,35 @@ define([
 			}
 			
 			this.protected_routes = this.context.protected_routes;
-		
-			this.channel = {};
-			this.channel['route'] = postal.channel('route');
-			this.channel['login'] = postal.channel('login');
 			
-			this.channel['route'].subscribe('ready', _.bind(function(data, envelope) {
+			postal.channel('route').subscribe('ready', _.bind(function(data, envelope) {
 				this.routeReady();
 			}, this));
 			
-			this.channel['route'].subscribe('route?', _.bind(function(data,envelope) {
+			postal.channel('route').subscribe('route?', _.bind(function(data,envelope) {
 				envelope.reply(null, {
 					route: this.current_route.route_name,
 					protected: _.has(this.protected_routes, this.current_route.route_name)
 				});
 			}, this));
 			
-			this.channel.route.subscribe('refire', _.bind(function(data, envelope) {
+			postal.channel('route').subscribe('refire', _.bind(function(data, envelope) {
 				if (typeof this.current_route.route_function === 'function') {
 					this.current_route.route_function(this.context, this.current_route.route_params);
 				}
 			}, this));
 			
-			this.channel.login.subscribe('change', _.bind(function(data, envelope) {
+			postal.channel('login').subscribe('change', _.bind(function(data, envelope) {
 				if(_.has(this.protected_routes, this.current_route.route_name)) {
 					if (data.loginStatus) {
-						this.channel.route.publish('refire');
+						postal.channel('route').publish('refire');
 					} else {
 						this.login_manager.show_login_page();
 					}
 				}
 			}, this))
 			
-			this.channel['route'].subscribe('change', _.bind(function(data, envelope) {
+			postal.channel('route').subscribe('change', _.bind(function(data, envelope) {
 				
 				React.unmountComponentAtNode($('#app').get(0));
 				$('#app').html('').append('<h1 class="state-loading text-center">Loading</h1>');
@@ -119,7 +115,7 @@ define([
 			_.each(this.routes, function(val, key) {
 				if (key == '') { return; }
 				this.on('route:' + val, function(params) {
-					this.channel['route'].publish('change',{
+					postal.channel('route').publish('change',{
 						params: params,
 						route: val
 					});

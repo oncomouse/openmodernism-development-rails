@@ -6,19 +6,9 @@ define([
 	postal
 ){
 	var ProtectedRouteMixin = {
-		getInitialState: function() {
-			if(typeof this.channel === 'undefined') {
-				this.channel = {};
-			}
-			if(!_.has(this.channel, 'component')) {
-				this.channel['component'] = postal.channel('component');
-			}
-			if(!_.has(this.channel, 'login')) {
-				this.channel['login'] = postal.channel('login');
-			}
-			
-			this.channel['component'].subscribe('anthology:doneEditing', _.bind(this.doneEditing,this));
-			this.channel['login'].subscribe('change', _.bind(function(data, envelope){
+		getInitialState: function() {			
+			postal.channel('component').subscribe('anthology:doneEditing', _.bind(this.doneEditing,this));
+			postal.channel('login').subscribe('change', _.bind(function(data, envelope){
 				this.fireAuthorizedCheck();
 			}, this));
 			return {
@@ -29,7 +19,7 @@ define([
 			this.fireAuthorizedCheck();
 		},
 		fireAuthorizedCheck: function() {
-			this.channel['login'].request({
+			postal.channel('login').request({
 				topic: 'can-user-edit?',
 				data: {
 					object_owner: this.props.model.get('user')

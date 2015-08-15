@@ -44,10 +44,7 @@ define([
 			$('#app').html('');
 		}
 		
-		app.currentAnthology = {
-			id: null,
-			contents: null
-		}
+		app.currentAnthology = null
 		
 		postal.channel('cache').subscribe('document?', function(data, envelope) {
 			var document = undefined;
@@ -62,10 +59,7 @@ define([
 		postal.channel('login').subscribe('change', function(data, envelope) {
 			if(!data.loginStatus && _.has(app, 'anthologyList')) {
 				app.anthologyList = null;
-				app.currentAnthology = {
-					id: null,
-					contents: null
-				}
+				app.currentAnthology = null;
 			}
 			postal.channel('component').publish('anthology:logged-out');
 		});
@@ -89,20 +83,16 @@ define([
 			});
 			app.currentAnthology.fetch().then(function() {
 				postal.channel('component').publish('anthology:edit-contents', {
-					contents: app.currentAnthology.get('documents')
+					anthology: app.currentAnthology
 				});
 			});
 		});
 		postal.channel('component').subscribe('anthology:done-editing', function(data, envelope) {
-			app.currentAnthology = {
-				id: null,
-				contents: null
-			}
+			app.currentAnthology = null;
 		});
 		postal.channel('component').subscribe('anthology:current-anthology?', function(data, envelope) {
 			envelope.reply(null, {
-				id: app.currentAnthology.id,
-				contents: app.currentAnthology.contents
+				anthology: app.currentAnthology
 			})
 		});
 

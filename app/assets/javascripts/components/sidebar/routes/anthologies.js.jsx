@@ -18,18 +18,11 @@ define([
 			React.addons.PureRenderMixin,
 			LoginDependentMixin
 		],
-		getInitialState: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['component'] = postal.channel('component');
-			return null;
-		},
 		loggedIn: function() {
 			return (
 				<div>
 					<CreateAnthologyForm />
-					<CurrentAnthology />
+					<CurrentAnthology sidebar={true}/>
 				</div>
 			);
 		},
@@ -48,15 +41,9 @@ define([
 		mixins: [
 			React.addons.PureRenderMixin,
 		],
-		componentDidMount: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['component'] = postal.channel('component');
-		},
 		handleSubmit: function(ev) {
 			ev.preventDefault();
-			this.channel.component.publish('create:anthology', {
+			postal.channel('component').publish('create:anthology', {
 				form: $(ev.target).serializeArray()
 			});
 		},

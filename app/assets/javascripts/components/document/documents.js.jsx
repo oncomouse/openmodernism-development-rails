@@ -1,22 +1,17 @@
 define([
 	'lodash',
 	'react',
-	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'components/sidebar/sidebar',
 	'components/sidebar/routes/documents',
 	'components/document/short_view'
 ], function(
 	_,
 	React,
-	PublishComponentMountMixin,
 	Sidebar,
 	SidebarDocuments,
 	DocumentShortView
 ) {
 	var Documents = React.createClass({
-		mixins: [
-			PublishComponentMountMixin
-		],
 		getPropDefaults: function() {
 			return {
 				collection: []

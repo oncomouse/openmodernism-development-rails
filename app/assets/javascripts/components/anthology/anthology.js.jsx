@@ -3,7 +3,6 @@ define([
 	'lodash',
 	'react',
 	'postal',
-	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'mixins/login-dependent/LoginDependentMixin',
 	'mixins/protected-route/ProtectedRouteMixin',
 	'components/document/short_view',
@@ -15,7 +14,6 @@ define([
 	_,
 	React,
 	postal,
-	PublishComponentMountMixin,
 	LoginDependentMixin,
 	ProtectedRouteMixin,
 	DocumentShortView,
@@ -23,13 +21,11 @@ define([
 ) {
 	var Anthology = React.createClass({
 		mixins: [
-			PublishComponentMountMixin,
 			LoginDependentMixin,
 			ProtectedRouteMixin
 		],
 		componentDidMount: function() {
-			this.channel.component = postal.channel('component');
-			this.channel.component.subscribe('anthology:done-editing', _.bind(function(data, envelope) {
+			postal.channel('component').subscribe('anthology:done-editing', _.bind(function(data, envelope) {
 				this.doneEditing();
 			}, this))
 		},
@@ -50,7 +46,7 @@ define([
 				return parseInt($(document).attr('data-id'));
 			}, this));
 			
-			this.channel.component.publish('model-has-changed', { toc: JSON.stringify(new_toc) });
+			postal.channel('component').publish('model-has-changed', { toc: JSON.stringify(new_toc) });
 			
 			this.refs.AnthologyModal.hideModal();
 		},
@@ -61,7 +57,6 @@ define([
 		},
 		render: function() {
 			var renderedChildren = 	_.map(this.props.model.get('documents').models, function (element) {
-				console.log(element);
 				return (<DocumentShortView model={element} key={JSON.stringify(element)}/>);
 			});
 			return(
@@ -94,31 +89,25 @@ define([
 		mixins: [
 			React.addons.PureRenderMixin
 		],
-		getInitialState: function() {
-			this.channel = {}
-			this.channel['component'] = postal.channel('component');
-			return null;
-		},
 		toggleEdit: function(ev) {
 			ev.preventDefault();
 			if($('#AnthologyEdit').html() == 'Done Editing') {
-				//$('#AnthologyContent').sortable('disable');
 				$('#AnthologyEdit').html('Edit This Anthology');
-				this.channel['component'].publish('anthology:done-editing', {});
+				postal.channel('component').publish('anthology:done-editing', {});
 			} else {
 				$('#AnthologyContent').sortable({
 					disabled: false,
 					update: this.update_sortable
 				});
 				$('#AnthologyEdit').html('Done Editing');
-				this.channel.component.publish('anthology:edit', {
+				postal.channel('component').publish('anthology:edit', {
 					id: this.props.model.id,
 					contents: JSON.parse(this.props.model.get('toc'))
 				});
 			}
 		},
 		update_sortable: function() {
-			this.channel['component'].publish('anthology:update_sortable', {});
+			postal.channel('component').publish('anthology:update_sortable', {});
 		},
 		render: function() {
 			var content = (<span></span>);

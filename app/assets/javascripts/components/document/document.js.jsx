@@ -1,16 +1,11 @@
 define([
 	'lodash',
-	'react',
-	'mixins/publish-component-mount/PublishComponentMountMixin'
+	'react'
 ], function(
 	_,
-	React,
-	PublishComponentMountMixin
+	React
 ) {
 	var Document = React.createClass({
-		mixins: [
-			PublishComponentMountMixin
-		],
 		propTypes: {
 			model: function(props, propName, componentName) { return (_.has(props, propName) && typeof props[propName].get === 'function' && typeof props[propName].set === 'function'); } /* Best we can do to check that model is a Backbone Model */
 		},

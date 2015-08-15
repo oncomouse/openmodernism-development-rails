@@ -22,12 +22,6 @@ define([
 		componentDidUpdate: function(prevProps, prevState) {
 			this.hookupForm();
 		},
-		componentWillMount: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['login'] = postal.channel('login');
-		},
 		hookupForm: function() {
 			// Hook up form validation:
 			FormValidation.setup($(this.getDOMNode()).find('.active form'));
@@ -45,7 +39,7 @@ define([
 		handleSubmit: function(ev) {
 			ev.preventDefault();
 	
-			this.channel['login'].publish('submit', {
+			postal.channel('login').publish('submit', {
 				event: ev,
 			});
 		},

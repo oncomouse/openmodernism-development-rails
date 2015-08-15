@@ -19,13 +19,7 @@ define([
 			    return dfd.promise();
 			};
 			
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			if(!_.has(this.channel, 'login')) {
-				this.channel['login'] = postal.channel('login');
-			}
-			this.channel['login'].subscribe('change', _.bind(function(data, envelope) {
+			postal.channel('login').subscribe('change', _.bind(function(data, envelope) {
 				if (this.isMounted()){
 					this.setState({loginStatus: data.loginStatus, loginUser: data.loginUser});
 				}
@@ -36,7 +30,7 @@ define([
 			}
 		},
 		componentDidMount: function() {
-			this.channel['login'].request({topic: 'authenticated?'}).then(_.bind(function(data) {
+			postal.channel('login').request({topic: 'authenticated?'}).then(_.bind(function(data) {
 				this.setState({loginStatus: data.loginStatus});
 			}, this));
 		},

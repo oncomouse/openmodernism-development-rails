@@ -5,8 +5,6 @@ define([
 	'postal',
 	'components/login/login_form',
 	'components/utilities/modal',
-	'mixins/route-architecture/RouteArchitectureMixin',
-	'mixins/publish-component-mount/PublishComponentMountMixin',
 	'utilities/form_validation'
 
 ], function(
@@ -16,30 +14,22 @@ define([
 	postal,
 	LoginForm,
 	Modal,
-	RouteArchitectureMixin,
-	PublishComponentMountMixin,
 	FormValidation
 ) {
 	var LoginModal = React.createClass({
 		mixins: [
-			React.addons.PureRenderMixin,
-			PublishComponentMountMixin
+			React.addons.PureRenderMixin
 		],
 		getInitialState: function() {
-			if(typeof this.channel !== 'object') {
-				this.channel = {};
-			}
-			this.channel['login'] = postal.channel('login');
-			
 			return {
 				tab: 'login-tab'
 			}
 		},
 		componentDidMount: function() {
-			this.channel['login'].subscribe('show-modal', _.bind(function(data, envelope) {
+			postal.channel('login').subscribe('show-modal', _.bind(function(data, envelope) {
 				this.refs.LoginModal.showModal();
 			}, this));
-			this.channel['login'].subscribe('submitted', _.bind(function(data, envelope) {
+			postal.channel('login').subscribe('submitted', _.bind(function(data, envelope) {
 				this.removeModal();
 			}, this));
 			
