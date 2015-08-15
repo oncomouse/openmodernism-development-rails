@@ -1,12 +1,15 @@
 define([
 	'lodash',
 	'react',
+	'postal',
 	'components/sidebar/sidebar',
 	'components/sidebar/routes/documents',
-	'components/document/short_view'
+	'components/document/short_view',
+	'jquery-ui/sortable'
 ], function(
 	_,
 	React,
+	postal,
 	Sidebar,
 	SidebarDocuments,
 	DocumentShortView
@@ -17,12 +20,20 @@ define([
 				collection: []
 			};
 		},
+		componentDidMount: function() {
+			postal.channel('component').subscribe('anthology:edit', function(data, envelope) {
+				$('#DocumentsView').addClass('sortable target list-group').find('li').addClass('list-group-item');
+			});
+			postal.channel('component').subscribe('anthology:done-editing', function(data, envelope) {
+				$('#DocumentsView').removeClass('sortable target list-group').find('li').removeClass('list-group-item');
+			});
+		},
 		render: function() {
 			return(
 				<div className="row">
 					<h1>List of Available Documents <span className="subtitle"></span></h1>
 
-					<DocumentList collection={this.props.collection} />
+					<DocumentList collection={this.props.collection} ref="DocumentList"/>
 					<Sidebar attach={true} title="Documents List">
 						<SidebarDocuments collection={this.props.collection} />
 					</Sidebar>

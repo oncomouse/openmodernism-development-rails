@@ -93,7 +93,8 @@ define([
 		},
 		turnOnSortable: function() {
 			$('ul.sortable').sortable({
-				connectWith: 'ul.target'
+				connectWith: 'ul.target',
+				cancel: _.map(JSON.parse(this.props.currentAnthology.get('toc')), function(x) { return '#DocumentsView li[data-id=' + x + ']';}).join(",")
 			});
 		},
 		stopEditing: function(ev) {
@@ -157,7 +158,7 @@ define([
 			var content = (<span/>);
 			if(this.props.anthologyList) {
 				var rendered_content = _.map(this.props.anthologyList.models, function (element) {
-					return (<option value={element.id}>{element.get('title')}</option>);
+					return (<option value={element.id} key={element.id}>{element.get('title')}</option>);
 				});
 				
 				content = (

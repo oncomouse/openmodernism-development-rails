@@ -13,7 +13,7 @@ define([
 		},
 		render: function() {
 			return(
-				<li>
+				<li data-id={this.props.model.id}>
 					<a href={ '#/document/' + this.props.model.id } data-id={this.props.model.id} className={this.props.className} dangerouslySetInnerHTML={{ __html: this.props.model.get('metadata').to_s() }} />
 				</li>
 			);
