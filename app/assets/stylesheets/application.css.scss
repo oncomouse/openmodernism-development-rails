@@ -125,6 +125,10 @@ body.loaded {
 	}
 }
 
+.list-group {
+	list-style: none;
+}
+
 .login-form {
 	.login-form-body {
 		border-radius: 0 0 $panel-border-radius $panel-border-radius;
