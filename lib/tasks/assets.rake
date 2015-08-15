@@ -44,49 +44,102 @@ namespace :assets do
 	end
 	
 	task :pack => [
-		"assets:environment",
-		"assets:clean",
-		"assets:make_app_build_js",
-		"assets:clean_copy",
-		"assets:run_r_js",
-		"assets:make_build_manifest",
-		"assets:handle_citeproc",
-		"assets:generate_polyfill",
-		"assets:clean_output_dir",
-		"assets:generate_css",
-		#"assets:uglify",
-		"assets:write_manifest",
-		"assets:produce_assets"
+		:environment,
+		:clean,
+		:make_app_build_js,
+		:clean_copy,
+		:run_r_js,
+		:make_build_manifest,
+		:clean_build_scripts,
+		:handle_citeproc,
+		:generate_polyfill,
+		:clean_output_dir,
+		:generate_css,
+		#:uglify,
+		:write_manifest,
+		:produce_assets
 	] 
 	
-	task :distribute => ["assets:pack"] do
+	$build_distribute = false
+	
+	task :distribute => [
+		:environment,
+		:clean,
+		:turn_on_distribute,
+		:make_app_build_js,
+		:clean_copy,
+		:run_r_js,
+		:clean_build_scripts,
+		:handle_citeproc,
+		:generate_polyfill,
+		:clean_output_dir
+	] do
 		require 'uglifier'
-		puts "Running task assets:distribute"
-		
-		puts "\nPacking scripts into #{Dir.pwd}/dist"
-		
-		manifest = JSON.parse(File.read("#{Rails.root}/public/assets/manifest.json"))
-		
-		FileUtils.mkdir_p "#{Rails.root}/dist/javascripts/"
-		
-		shim_manifest = {"assets"=>{}}
-		files = Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}-*.js") + Dir.glob("#{Rails.root}/public/assets/require-*.js") + Dir.glob("#{Rails.root}/public/assets/routes/**/*.js")
-		files.each do |file|
-			out_file = "dist/javascripts/#{manifest["files"][file.sub("#{Rails.root}/public/assets/", "")]["logical_path"]}".sub(/\.js$/,".js")
+		FileUtils.mkdir_p "#{Rails.root}/dist"
+		jsx_files = []
+		Dir.glob("#{OUTPUT_DIR}/**/*.*").each do |file|
+			file.sub!("#{OUTPUT_DIR}/", "")
+			out_file = "#{Rails.root}/dist/#{file}"
+			if (file =~ /\.jsx$/ or file =~ /\.js$/)
+				out_file = "#{Rails.root}/dist/javascripts/#{file}"
+				if file =~ /\.jsx$/
+					jsx_files.push(file.sub(/\.jsx$/,""))
+				end
+			end
 			FileUtils.mkdir_p File.dirname(out_file)
-			FileUtils.cp file, out_file
-			
-			shim_manifest["assets"][out_file.sub("#{Rails.root}/dist/javascripts/","")] = out_file.sub("#{Rails.root}/dist/javascripts/","")
+			if file.include? MAIN_FILE
+				puts "Minifying #{out_file}"
+				source = File.read("#{OUTPUT_DIR}/#{file}")
+				(config, libs) = source.split("requirejs.config(requirejs_configuration);")
+				File.open(out_file, "w") do |fp|
+					fp.write config.sub("'baseUrl': 'assets',", "'baseUrl': 'javascripts',")
+					fp.write "\n\n/*\n #{"*" * 72}\n\n\t Don't edit below this comment.\n\n #{"*" * 72}\n*/\n\n"
+					fp.write "requirejs.config(requirejs_configuration);"
+					(init, libs) = libs.split("define(\"main\", function(){});")
+					fp.write Uglifier.compile("require(['app'], function(App){App.start()});" + libs)
+				end
+			elsif file =~ /[Ll]ogin/
+				puts "Copying #{out_file}"
+				FileUtils.cp("#{OUTPUT_DIR}/#{file}", out_file)
+			else
+				puts "Minifying #{out_file}"
+				File.open(out_file,"w") do |fp|
+					fp.write Uglifier.compile(File.read("#{OUTPUT_DIR}/#{file}"))
+				end
+			end
 		end
 		
-		# Rewrite main.js as app.js and build a user editable main.js (so users can configure RequireJS to meet their needs).
-		correct_main = File.read("#{Rails.root}/dist/javascripts/main.js").sub(/var requirejs_configuration\=.*define\(\"main\"\,function\(\)\{\}\),/,"")
-		File.open("#{Rails.root}/dist/javascripts/app.js","w") do |fp|
-			fp.write(correct_main)
+		# Fix JSX includes in main.js
+		jsx_files.each do |jsx_file|
+			FileUtils.mkdir_p(File.dirname("#{Rails.root}/dist/javascripts/#{jsx_file}") + "/src")
+			FileUtils.mv("#{Rails.root}/dist/javascripts/#{jsx_file}.jsx", File.dirname("#{Rails.root}/dist/javascripts/#{jsx_file}") + "/src")
+			File.open("#{Rails.root}/dist/javascripts/#{jsx_file}.js", "w") do |fp|
+				fp.write Rails.application.assets.find_asset(jsx_file+".js").to_s
+			end
 		end
-		File.open("#{Rails.root}/dist/javascripts/#{MAIN_FILE}","w") do |fp|
-			fp.write(Rails.application.assets.find_asset(MAIN_FILE).to_s.sub(/,\n\s+'paths':.*\}\n\};/m,"\n};").sub("'baseUrl': 'assets'", "'baseUrl': 'javascripts'").sub("requirejs.config","/* #{"*" * 6} DO NOT EDIT BELOW THIS LINE #{"*" * 72} */\n\nrequirejs_configuration.map={\"*\":{\"underscore\":\"lodash\"}};requirejs.config").sub(/\nvar manifest.*$/m,Uglifier.compile("require([\"app\"],function(app){window.manifest=#{JSON.pretty_generate(shim_manifest)}; app.start();})")))
+		
+		File.open("#{Rails.root}/dist/index.html","w") do |fp|
+			fp.write("<!DOCTYPE html>\n<html>\n<head>\n<meta content='text/html; charset=UTF-8' http-equiv='Content-Type'>\n<title>AnthologyJammrRails</title>\n<!-- Load Fonts: -->\n<link href='//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css' media='all' rel='stylesheet'>\n<link href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css' media='all' rel='stylesheet'>\n<link href='/stylesheets/application.css' media='all' rel='stylesheet'>\n<script src='/javascripts/require.js' data-main='/javascripts/main'></script>\n</head>\n<body>\n<header class='container' role='banner'>\n<div class='row'>\n<nav class='navbar navbar-default' role='navigation'>\n<div class='container-fluid'>\n<div class='navbar-header'>\n<button class='navbar-toggle collapsed' data-target='.navbar-collapse' data-toggle='collapse' type='button'>\n<span class='sr-only'>Toggle navigation</span>\n<div class='icon-bar'></div>\n<div class='icon-bar'></div>\n<div class='icon-bar'></div>\n</button>\n<a class='navbar-brand' href='/#/'>Open Modernism</a>\n</div>\n<div class='collapse navbar-collapse'>\n<ul class='nav navbar-nav'></ul>\n<div id='LoginButtonsContainer'></div>\n</div>\n</div>\n</nav>\n</div>\n</header>\n<article class='container' role='main'>\n<div id='app'></div>\n</article>\n<footer class='container' role='complementary'></footer>\n<div class='text-center' id='loading'>\n<h1>Loading <br> Open Modernism</h1>\n<h2>Please Wait a Moment</h2>\n<p>\n<i class='fa fa-spin fa-spinner'></i>\n</p>\n</div>\n</body>\n</html>")
 		end
+		File.open("#{Rails.root}/dist/documents","w") do |fp|
+			fp.write("[{\"id\":1,\"metadata\":\"title: On the Modern Element in Literature\\nauthor: \\u0026ref_0\\n  - given: Matthew\\n    family: Arnold\\ncitation:\\n  container-title: \\\"Macmillan's Magazine\\\"\\n  number: 112\\n  volume: XIX\\n  issued:\\n    date-parts:\\n      - - 1869\\n        - 2\\n  pages: 304-314\\n  author: *ref_0\\n  title: On the Modern Element in Literature\\n  id: citation\\n  page: 304-314\\nsources:\\n  - \\\"Arnold, M. (1869). ON THE MODERN ELEMENT IN LITERATURE. Macmillan's Magazine, 1859-1907, 19(112), 304-314. Retrieved from http://search.proquest.com/docview/6152105?accountid=14214\\\"\\n  - 'https://archive.org/details/essaysincriticis01arno'\\n  - 'https://archive.org/details/essaysbymatthewa00arnorich'\\neditor: Chris Forster\\n\",\"created_at\":\"2015-07-26T15:38:15.623Z\",\"updated_at\":\"2015-07-26T15:38:15.623Z\"},{\"id\":2,\"metadata\":\"title: '*Ulysses*, Order, and Myth'\\nauthor: \\u0026ref_0\\n  - family: Eliot\\n    given: T. S.\\ncitation:\\n  container-title: The Dial\\n  issued:\\n    date-parts:\\n      - - 1923\\n        - 11\\n  pages: 480-483\\n  author: *ref_0\\n  title: '*Ulysses*, Order, and Myth'\\n  id: citation\\n  page: 480-483\\nsource:\\n  - 'http://summit.syr.edu/vwebv/holdingsInfo?bibId=911529'\\n  - 'http://people.virginia.edu/~jdk3t/eliotulysses.htm'\\n  - 'http://onlinebooks.library.upenn.edu/webbin/serial?id=thedial'\\neditor: Chris Forster\\n\",\"created_at\":\"2015-07-26T15:38:47.351Z\",\"updated_at\":\"2015-07-26T15:38:47.351Z\"},{\"id\":3,\"metadata\":\"title: On Impressionism\\nauthor: \\u0026ref_0\\n  - family: 'Ford [Hueffer]'\\n    given: Ford Madox\\ncitation:\\n  container-title: Poetry and Drama\\n  vol: II\\n  number: 6\\n  year: 1914\\n  month: 6\\n  pages: 167 - 175\\n  author: *ref_0\\n  title: On Impressionism\\n  title-short: On Impressionism\\n  id: citation\\n  container-title-short: Poetry and Drama\\nsource:\\n  - 'http://summit.syr.edu/vwebv/holdingsInfo?bibId=4102088'\\n  - 'https://archive.org/details/poetrydrama02monruoft'\\nnote: \\\"Ford's \\\\\\\"On Impressionism\\\\\\\" originally appeared split into two articles, appearing in two issues of the journal *Poetry and Drama*.\\\"\\ntags:\\n  - impressionism\\neditor: Chris Forster\\n\",\"created_at\":\"2015-07-26T15:39:14.995Z\",\"updated_at\":\"2015-07-26T15:39:14.995Z\"}]")
+		end
+		Dir.glob("#{Rails.root}/app/assets/stylesheets/**/[^_]*.scss") do |file|
+			css = file.sub("#{Rails.root}/app/assets/stylesheets/","").sub(/\.css.scss$/,".css").sub(/\.scss$/,".css")
+			out_file = "#{Rails.root}/dist/stylesheets/#{css}"
+			FileUtils.mkdir_p File.dirname(out_file)
+			File.open(out_file, "w") do |fp|
+				fp.write Rails.application.assets.find_asset(css).to_s
+			end
+		end
+		FileUtils.mkdir_p("#{Rails.root}/dist/javascripts/jsx")
+		File.open("#{Rails.root}/dist/javascripts/jsx/jsx.js", "w") { |fp| fp.write Rails.application.assets.find_asset("js/jsx.js").to_s }
+		File.open("#{Rails.root}/dist/javascripts/jsx/JSXTransformer.js", "w") { |fp| fp.write Rails.application.assets.find_asset("JSXTransformerjs").to_s }
+		FileUtils.rm_r("#{OUTPUT_DIR}")
+	end
+	
+	task :turn_on_distribute do
+		$build_distribute = true
 	end
 	
 	def get_application_config
@@ -100,40 +153,62 @@ namespace :assets do
 		manifest = Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").length > 0 ? JSON.parse(File.read(Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").first)) : {}
 		config["modules"] = []
 		
-		build_mod = false
-		if manifest.has_key? MAIN_FILE.sub(/\.js$/,"")
-			if Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}*.js").length == 0
-				build_mod = true
+		if not $build_distribute
+			build_mod = false
+			if manifest.has_key? MAIN_FILE.sub(/\.js$/,"")
+				if Dir.glob("#{Rails.root}/public/assets/#{(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")}*.js").length == 0
+					build_mod = true
+				else
+					manifest[MAIN_FILE.sub(/\.js$/,"")].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
+				end
 			else
-				manifest[MAIN_FILE.sub(/\.js$/,"")].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
+				build_mod = true
 			end
 		else
 			build_mod = true
 		end
 		
 		if build_mod
-			config['modules'].push(
+			config["modules"].push(
 				{
-					'name' => 'main',
+					'name' => (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"),
 					'include' => [
 						'text',
 						'json'
 					]
 				}
 			)
-			built_modules.push("main")
+			if $build_distribute
+				config["modules"][-1]["exclude"] = ["utilities/login_manager"]
+				config["modules"][-1]["exclude"] = ["app"]
+				config["modules"].push(
+					{
+						"name" => "app",
+						"exclude" => [
+							(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")
+						],
+						"excludeShallow" => Dir.glob("app/assets/javascripts/**/*[Ll]ogin*.*").map{ |x| x.sub("app/assets/javascripts/","").sub(/\.js\.\w+$/,".js").sub(/\.js$/,"") }
+					}
+				)
+				built_modules.push("app")
+			end
+			built_modules.push((File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
 		end
 		
 		Dir.glob("#{Rails.root}/app/assets/javascripts/routes/**/*.js").each do |route_file|
 			
 			route_file.gsub!("#{Rails.root}/app/assets/javascripts/","").gsub!(/\.js$/,"")
 			build_mod = false
-						
-			if manifest.has_key? route_file
-				if Dir.glob("#{Rails.root}/public/assets/#{route_file}*.js").length == 0
-					build_mod = true
+
+			if not $build_distribute
+				if manifest.has_key? route_file
+					if Dir.glob("#{Rails.root}/public/assets/#{route_file}*.js").length == 0
+						build_mod = true
+					else
+						manifest[route_file].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
+					end
 				else
-					manifest[route_file].each{ |file, digest| file = Rails.application.assets.find_asset(file); if file.nil? or Digest::SHA2.hexdigest(file.to_s) != digest then build_mod = true; break end}
+					build_mod = true
 				end
 			else
 				build_mod = true
@@ -142,15 +217,18 @@ namespace :assets do
 			if build_mod
 				mod_def = {
 					'name' => route_file,
-					'exclude' => [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
+					"exclude" => [$build_distribute ? 'app' : (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
 				}
+				if $build_distribute
+					mod_def["exclude"].push('utilities/login_manager')
+				end
 				# Include the sidebar component in the build, if it exists:
 				if not Rails.application.assets.find_asset("components/sidebar/#{route_file}.js").nil?
 					mod_def['include'] = [
 						"components/sidebar/#{route_file}"
 					]
 				end
-				config['modules'].push(mod_def)
+				config["modules"].push(mod_def)
 				
 				built_modules.push(route_file)
 			end
@@ -173,17 +251,13 @@ namespace :assets do
 					]
 				}
 		
-				if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
-					mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
-				else
-					mod_def['exclude'] = []
-				end
+				mod_def["exclude"] = [$build_distribute ? 'app' : (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
 	
-				mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
+				mod_def["exclude"] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
 				if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
 					mod_def['include'].push("components/sidebar/#{built_module}")
 				end
-				config['modules'].push(mod_def)
+				config["modules"].push(mod_def)
 				built_modules.push(built_module + "_wo_citeproc")
 			else
 				manifest[built_module].each do |file, hash|
@@ -197,22 +271,33 @@ namespace :assets do
 							]
 						}
 		
-						if(built_module != (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js"))
-							mod_def['exclude'] = [(File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
-						else
-							mod_def['exclude'] = []
-						end
+						mod_def["exclude"] = [$build_distribute ? 'app' : (File.dirname(MAIN_FILE) == "." ? "" : File.dirname(MAIN_FILE)+"/") + File.basename(MAIN_FILE,".js")]
 	
-						mod_def['exclude'] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
+						mod_def["exclude"] += Dir.glob("#{Rails.root}/app/assets/javascripts/vendor/citeproc-amd/**/*.js").map{|x| x.sub("#{Rails.root}/app/assets/javascripts/","").sub(/\.js$/,"") }
 						if not Rails.application.assets.find_asset("components/sidebar/#{built_module}.js").nil?
 							mod_def['include'].push("components/sidebar/#{built_module}")
 						end
-						config['modules'].push(mod_def)
+						config["modules"].push(mod_def)
 						built_modules.push(built_module + "_wo_citeproc")
 					end
 				end
 			end
 		end
+
+		if $build_distribute
+			Dir.glob("app/assets/javascripts/**/*[Ll]ogin*.*").map{ |d| d=d.sub("app/assets/javascripts/","").sub(/\.js\.\w+$/,".js").sub(/\.js$/,"") }.each do |mod|
+				config["modules"].push({
+					"name" => mod,
+					"exclude" => ["app"]
+				})
+				#config["modules"][-1]["exclude"] = built_modules
+
+				built_modules.push(mod)
+			end
+		end
+		main_config = config["modules"].shift
+		config["modules"].reverse!
+		config["modules"].unshift(main_config)
 
 		FileUtils.mkdir_p("#{Rails.root}/tmp/")
 		File.open("#{Rails.root}/tmp/build-manifest.json", "w") do |fp|
@@ -224,7 +309,7 @@ namespace :assets do
 		config['dir'] = "#{OUTPUT_DIR}"
 		config['skipDirOptimize'] = true
 		config['optimize'] = 'none'
-		config['modules'] = config['modules'].uniq
+		config["modules"] = config["modules"].uniq
 		
 		File.open("#{Rails.root}/app.build.js", 'w') do |json_fp|
 			json_fp.write(JSON.pretty_generate(config))
@@ -282,7 +367,11 @@ namespace :assets do
 	
 	task :handle_citeproc do
 		built_modules = JSON.parse(File.read("#{Rails.root}/tmp/build-manifest.json"))
-		build_dependencies = {}; if File.exists? "#{OUTPUT_DIR}/build.txt" then File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") } end
+		if $build_distribute
+			build_dependencies = {}; if File.exists? "#{OUTPUT_DIR}/build.txt" then File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); if dependencies.nil? and mod =~ /[lL]ogin/ then mod.gsub!(/\n/,""); dependencies = mod;if File.exists? "#{Rails.root}/app/assets/javascripts/#{mod}.jsx" then FileUtils.rm("#{OUTPUT_DIR}/#{mod}"); out_file = "#{OUTPUT_DIR}/#{mod}".sub(/\.js$/,".jsx"); source = File.read("#{Rails.root}/app/assets/javascripts/#{mod}.jsx") else out_file = "#{OUTPUT_DIR}/#{mod}"; source = File.read("#{Rails.root}/app/assets/javascripts/#{mod}") end; File.open(out_file,"w"){|fp| fp.write(source) } end; build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") } end
+		else
+			build_dependencies = {}; if File.exists? "#{OUTPUT_DIR}/build.txt" then File.read("#{OUTPUT_DIR}/build.txt").split("\n\n").each{ |x| (mod,dependencies) = x.split(/^-+$/); if dependencies.nil? and mod.include? "login_manager" then dependencies = Dir.glob("app/assets/javascripts/**/*[Ll]ogin*.*").map{ |d| d=d.sub("app/assets/javascripts/","").sub(/\.js\.\w+$/,".js"); File.open("#{OUTPUT_DIR}/#{mod.sub(/\n+$/,"")}","a"){|fp| fp.write(Rails.application.assets.find_asset(d).to_s) };d}.join("\n") end; build_dependencies[mod.sub(/\.js$/,"").gsub(/\n/,"")] = dependencies.gsub(/\n/,"") } end
+		end
 		
 		deleted_modules = []
 		
@@ -312,6 +401,9 @@ namespace :assets do
 		end
 		Dir.glob("#{Rails.root}/public/assets/.build-manifest-*.json").each{ |x| File.delete(x) }
 		File.open("#{OUTPUT_DIR}/build-manifest.json","w"){ |fp| fp.write JSON.generate(build_manifest) }
+	end
+	
+	task :clean_build_scripts do
 		FileUtils.rm_r "#{Rails.root}/tmp/assets-clean_copy"
 		FileUtils.rm "#{Rails.root}/app.build.js"
 	end
@@ -400,7 +492,6 @@ namespace :assets do
 				fp.write(File.read(file))
 			end	
 		end
-		
 		
 		FileUtils.cp("#{OUTPUT_DIR}/build-manifest.json", "#{Rails.root}/public/assets/.build-manifest-#{SecureRandom.hex(16)}.json") if File.exists? "#{OUTPUT_DIR}/build-manifest.json"
 		
