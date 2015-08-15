@@ -36,13 +36,16 @@ define([
 		propTypes: {
 			model: function(props, propName, componentName) { return (_.has(props, propName) && typeof props[propName].get === 'function' && typeof props[propName].set === 'function'); } /* Best we can do to check that model is a Backbone Model */
 		},
-		reorder: function(toc) {
-			
+		getInitialState: function() {
+			return {
+				editing: false
+			}
 		},
 		doneEditing: function(data, envelope) {
 			this.refs.AnthologyModal.showModal();
 		},
 		saveChanges: function() {
+			$('#AnthologyContent').sortable( "disable" );
 			var new_toc = _.map($('#AnthologyContent li a'), _.bind(function(document) {
 				return parseInt($(document).attr('data-id'));
 			}, this));
@@ -52,12 +55,13 @@ define([
 			this.refs.AnthologyModal.hideModal();
 		},
 		cancelChanges: function() {
-			this.reorder(JSON.parse(this.props.model.get('toc')));
+			$('#AnthologyContent').sortable( "cancel" );
 			
 			this.refs.AnthologyModal.hideModal();
 		},
 		render: function() {
 			var renderedChildren = 	_.map(this.props.model.get('documents').models, function (element) {
+				console.log(element);
 				return (<DocumentShortView model={element} key={JSON.stringify(element)}/>);
 			});
 			return(
@@ -98,7 +102,7 @@ define([
 		toggleEdit: function(ev) {
 			ev.preventDefault();
 			if($('#AnthologyEdit').html() == 'Done Editing') {
-				$('#AnthologyContent').sortable('disable');
+				//$('#AnthologyContent').sortable('disable');
 				$('#AnthologyEdit').html('Edit This Anthology');
 				this.channel['component'].publish('anthology:done-editing', {});
 			} else {
