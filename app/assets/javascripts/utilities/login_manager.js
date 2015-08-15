@@ -6,6 +6,7 @@ define([
 	'backbone',
 	'postal',
 	'react',
+	'models/user',
 	'utilities/form_validation',
 	'utilities/alert_manager',
 	'components/login/login_link',
@@ -20,6 +21,7 @@ define([
 	Backbone,
 	postal,
 	React,
+	User,
 	FormValidation,
 	AlertManager,
 	LoginLinkComponent,
@@ -41,9 +43,9 @@ define([
 				    _.defaults(options || (options = {}), {
 				    	headers: {}
 				    });
-					if(_.has(window.session_user, 'email')) {
-						options.headers['X-API-EMAIL'] = window.session_user['email'];
-						options.headers['X-API-TOKEN'] = window.session_user['authentication_token'];
+					if(window.session_user.has('email') && window.session_user.get('email')) {
+						options.headers['X-API-EMAIL'] = window.session_user.get('email');
+						options.headers['X-API-TOKEN'] = window.session_user.get('authentication_token');
 					}
 				
 					return Backbone.original_sync(method, model, options);
@@ -51,10 +53,10 @@ define([
 				postal.unsubscribe(this.channel.subscriptions['route:ready']);
 			}, this));
 			
-			window.session_user = {};
+			window.session_user = new User;
 			if(this.getCookie('API-USER') != "not_logged_in") {
-				window.session_user['email'] = decodeURIComponent(this.getCookie('API-USER'));
-				window.session_user['authentication_token'] = decodeURIComponent(this.getCookie('API-TOKEN'));
+				window.session_user.set('email', decodeURIComponent(this.getCookie('API-USER')));
+				window.session_user.set('authentication_token', decodeURIComponent(this.getCookie('API-TOKEN')));
 			}
 			
 			// Mount React Components:
@@ -109,8 +111,8 @@ define([
 					data: data,
 					dataType: 'json',
 					headers: {
-						'X-API-EMAIL': window.session_user['email'],
-						'X-API-TOKEN': window.session_user['authentication_token']
+						'X-API-EMAIL': window.session_user.get('email'),
+						'X-API-TOKEN': window.session_user.get('authentication_token')
 					}
 				}).done(function(data, status, xhr){
 					form.trigger('ajax:success', [data, status, xhr]);
@@ -127,16 +129,15 @@ define([
 			this.channel['login'].publish('change', this.login_postal_message());
 		},
 		authenticated: function() {
-			return _.has(window.session_user, 'email');
+			return typeof window.session_user.get('email') !== 'undefined';
 		},
 		current_user: function() {
-			return this.authenticated() ? window.session_user['email'] : null;
+			return this.authenticated() ? window.session_user.get('email') : null;
 		},
 		login_form_submission_success: function(ev, data){
 			ev.stopPropagation();
 			if ($(ev.target).attr('id') == 'LoginForm' || $(ev.target).attr('id') == 'CreateAccountForm') {
-				window.session_user['email'] = data['email'];
-				window.session_user['authentication_token'] = data['authentication_token'];
+				window.session_user = new User({email: data['email'], authentication_token: data['authentication_token']});
 				
 				this.channel['login'].publish('change', this.login_postal_message());
 				
@@ -165,12 +166,12 @@ define([
 			$.ajax('/users/sign_out', {
 				method: 'delete',
 				headers: {
-					'X-API-EMAIL': window.session_user['email'],
-					'X-API-TOKEN': window.session_user['authentication_token']
+					'X-API-EMAIL': window.session_user.get('email'),
+					'X-API-TOKEN': window.session_user.get('authentication_token')
 				},
 				dataType: 'json'
 			}).done(_.bind(function(data) {
-				window.session_user = {};
+				window.session_user = new User();
 				this.channel['login'].publish('change', this.login_postal_message());
 			}, this));
 		},
