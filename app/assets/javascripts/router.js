@@ -82,28 +82,26 @@ define([
 				
 				this.current_route.route_name = _.findLastKey(this.routes, function(route) { return route == data.route; });
 				
-				
-				/*
-				This is not a good solution:
-				The problem is that Rails renames assets with a cache buster, which means that r.js
-				has routes named in compiled files that no longer match their file name on the server.
-				
-				To solve this, we check if there's a manifest (which means we're in production) and
-				build a require call to that file if so. If not, the require call is empty, which is
-				just a pass-through. Then, inside of that first require call, we can actually call 
-				call the route.
-				
-				In production, this means we just call the defined route (which has loaded) by its name
-				and go.
-				
-				In development, this is where we actualy load the file.
-				
-				This is weird, but seems the best way to deal with Rail's weird cache-busting.
-				*/
 				if(_.has(this.protected_routes, this.current_route.route_name) && !this.login_manager.authenticated()) {
 					this.login_manager.show_login_page();
 				} else {
+					/*
+					This is not a good solution:
+					The problem is that Rails renames assets with a cache buster, which means that r.js
+					has routes named in compiled files that no longer match their file name on the server.
 				
+					To solve this, we check if there's a manifest (which means we're in production) and
+					build a require call to that file if so. If not, the require call is empty, which is
+					just a pass-through. Then, inside of that first require call, we can actually call 
+					call the route.
+				
+					In production, this means we just call the defined route (which has loaded) by its name
+					and go.
+				
+					In development, this is where we actualy load the file.
+				
+					This is weird, but seems the best way to deal with Rail's weird cache-busting.
+					*/
 					var route_file = (typeof window.manifest === 'undefined') ? '' : window.manifest['assets']['routes/' + data.route+'.js'].replace(/\.js$/,'');
 					if(typeof window.manifest !== 'undefined' && _.has(window.manifest.assets,'routes/' + data.route+'_wo_citeproc.js') && require.defined('citeproc/citeproc') && !require.defined('routes/' + data.route)) {
 						route_file = window.manifest['assets']['routes/' + data.route+'_wo_citeproc.js'].replace(/\.js$/,'')
