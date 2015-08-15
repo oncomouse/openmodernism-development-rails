@@ -46,6 +46,17 @@ define([
 			id: null,
 			contents: null
 		}
+		
+		postal.channel('cache').subscribe('document?', function(data, envelope) {
+			var document = undefined;
+			if(typeof app.documentList !== 'undefined') {
+				document = app.documentList.get(data.id);
+			}
+			envelope.reply(null, {
+				document: document
+			});
+		});
+		
 		postal.channel('login').subscribe('change', function(data, envelope) {
 			if(!data.loginStatus && _.has(app, 'anthologyList')) {
 				app.anthologyList = null;
@@ -72,8 +83,18 @@ define([
 		});
 		postal.channel('component').subscribe('anthology:edit', function(data, envelope) {
 			app.currentAnthology = {
-				id: data.id,
-				contents: data.contents
+				id: data.id
+			}
+			var contents = undefined;
+			if(typeof app.anthonologyList === 'undefined') {
+				contents = app.anthologyList.get(id);
+			} else {
+				contents = new Anthology({id: id});
+				contents.fetch().then(function() {
+					postal.channel('component').publish('anthology:edit-contents', {
+						contents: contents.documents
+					});
+				});
 			}
 		});
 		postal.channel('component').subscribe('anthology:done-editing', function(data, envelope) {
