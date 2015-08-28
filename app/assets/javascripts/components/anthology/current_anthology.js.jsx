@@ -4,6 +4,7 @@ define([
 	'react',
 	'mixins/login-dependent/LoginDependentMixin',
 	'components/document/short_view',
+	'components/utilities/modal',
 	'postal.request-response',
 	'jquery-ui/sortable'
 ], function(
@@ -11,7 +12,8 @@ define([
 	postal,
 	React,
 	LoginDependentMixin,
-	DocumentShortView
+	DocumentShortView,
+	Modal
 ) {
 	var CurrentAnthology = React.createClass({
 		mixins: [
@@ -63,9 +65,9 @@ define([
 				});
 			}, this));
 		},
-		turnOffSortable: function() {
-			$('ul.sortable').sortable(
-				'disable'
+		turnOffSortable: function(newOrder) {
+			$('ul.sortable').sortable( 
+				newOrder ? 'disable' : 'cancel'
 			);
 		},
 		render: function() {
@@ -100,6 +102,14 @@ define([
 		stopEditing: function(ev) {
 			ev.preventDefault();
 			
+			this.refs.ConfirmSaveModal.showModal();
+		},
+		saveChanges: function(ev) {
+			this.refs.ConfirmSaveModal.hideModal();
+			postal.channel('component').publish('anthology:done-editing'); 
+		},
+		cancelChanges: function(ev) {
+			this.refs.ConfirmSaveModal.hideModal();
 			postal.channel('component').publish('anthology:done-editing');
 		},
 		componentDidUpdate() {
@@ -123,6 +133,13 @@ define([
 							<ul className="list-group sortable target" id="CurrentAnthologyContent" ref="CurrentAnthologyContentList">
 								{renderedChildren}
 							</ul>
+							<Modal title="Save Changes?" static={true} ref="ConfirmSaveModal">
+								<h2>Save Current Anthology?</h2>
+								<p className="text-center">
+									<button onClick={this.saveChanges} className='btn btn-primary btn-lg'>Yes</button>
+									<button onClick={this.cancelChanges}  className='btn btn-default btn-lg'>No</button>
+								</p>
+							</Modal>
 						</div>
 					);
 				} else {
