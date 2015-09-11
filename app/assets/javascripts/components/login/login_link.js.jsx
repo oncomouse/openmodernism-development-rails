@@ -32,7 +32,7 @@ define([
 				<ul id="LoginButtons" className="nav navbar-nav navbar-right">
 					<DashboardLink loginStatus={this.state.loginStatus} />
 					<LoginButton onClick={this.state.loginStatus ? this.clickLogout : this.clickLogin}>
-						{this.state.loginStatus ? 'Logout' : 'Login'}
+						{this.state.loginStatus ? 'Logout' : 'Login / Create Account'}
 					</LoginButton>
 				</ul>
 			);
