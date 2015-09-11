@@ -29,8 +29,8 @@ define([
 	var User = Backbone.Model.extend({
 		idAttribute: 'id',
 		defaults: {
-			email: null,
-			authentication_token: null
+			email: undefined,
+			authentication_token: undefined
 		}
 	});
 	
